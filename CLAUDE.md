@@ -158,7 +158,7 @@ variables instead of the chat, then read the file:
 - The game writes it to disk only on `/reload` or logout. Ask the user to run
   the probe, `/reload`, and say when it's done.
 - Read it from
-  `/Applications/World of Warcraft/_classic_beta_/WTF/Account/<account>/SavedVariables/ImprovedForever.lua`
+  `/Applications/World of Warcraft/_classic_era_/WTF/Account/<account>/SavedVariables/ImprovedForever.lua`
   (per-character data: `ImprovedForeverCharDB` under
   `WTF/Account/<account>/<realm>/<character>/SavedVariables/`).
 - To find which event comes with something, log every event while it
@@ -178,7 +178,7 @@ when a gamepad-focused window closes):
   same game state, and the name changes as one is fixed.
 - Repeat each test 3+ times: the error can be intermittent.
 - Taint log: `/console taintLog 1`, reproduce, `/console taintLog 0`, then
-  `/reload`, and read `_classic_beta_/Logs/taint.log`. It restarts on every
+  `/reload`, and read `_classic_era_/Logs/taint.log`. It restarts on every
   `/reload` while on. Don't use level 2: it can flood and freeze the game.
 - Taint sources found so far:
   - our code filling the game's shared caches first (`QuestCache:Get`,
