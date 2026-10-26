@@ -1,5 +1,12 @@
 # Changelog
 
+## Camp 0.1.0
+
+- Sitting by a campfire is a cutscene: the HUD steps away, black bars come in and the camera cuts between shots round you.
+- Your day is told back from the Journal, and the camp's benefits show up when they come.
+- What's said near you appears as subtitles.
+- Logging out is a scene of its own, with a countdown, a recap and a button to cancel.
+
 ## Core 0.12.0
 
 - **Double-tap the touchpad corners** to run a window action; the bind editor lists them and the layer text shows the pad's glyphs.
