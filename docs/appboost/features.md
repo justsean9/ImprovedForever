@@ -1,7 +1,7 @@
 # Features (shipped, per README.md / CHANGELOG.md / dist/curseforge/*.md)
 
 - **Core**: button glyphs, configuration panel (double-tap Menu or `/if`), Bindings tab (controller press and keyboard/mouse press per binding), bag clean-up, touchpad corner actions (incl. double-tap), shared item verdict, bundled game data.
-- **Wheel**: radial wheels on R3 combos; built in Quest Items, Consumables, Emotes, Improved Forever; custom wheels (spells, items, macros, emotes, chat phrases, totems, trinket swap); recent action slot.
+- **Wheel**: radial wheels on R3 combos (defaults: L1 Quest Items, L2 Emotes, R1 Consumables); built-in wheels Quest Items (items a quest has you use or that start one), Consumables (food, drink, potions, bandages, scrolls, elixirs, flasks), Emotes, Group (pick a party or raid member, then cast a helpful spell on them, usable in combat), Improved Forever (our windows) and Camping (with the Camp module); custom wheels (spells, items, macros, emotes, chat phrases, totems, trinket swap); recent action slot. Source: ImprovedForever_Wheel code (Wheel.lua, MyWheels.lua).
 - **Vibration**: vibration on game events and spell casts, per-action patterns.
 - **Minimap**: names beside minimap dots (herbs, ore, quests, NPCs, party), gathering alerts.
 - **Map**: peek map.

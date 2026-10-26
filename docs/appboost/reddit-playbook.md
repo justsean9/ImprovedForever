@@ -58,3 +58,11 @@ Source: Reddit's public JSON for r/wowforever and r/classicwow, read 2026-10-26 
 
 - Big controller creators: Kinzo (many videos, 19K to 126K views; viewers there ask for controller-friendly addons that don't throw UI errors), Marcelian&Flame (118K), Dvalin Gaming (58K to 61K), Farmin' Forever (38K).
 - Reply to a viewer's own question or complaint, not a top-level pitch. Creator contact (partnership) goes to the user first.
+
+## Moment first (user direction, 2026-10-26)
+
+Not every post is about an addon. Lead with a moment a player knows (the dead 20 seconds before a logout, a campfire wait, full bags mid-loot) and show it in a real clip or screenshot. The addon is the one-line answer ("I built this", free, AI disclosure on Reddit). Media in `assets.md` under "Campaign media". Check that anything shown can be installed first.
+
+## One moment, many channels, never the same post
+
+Each moment leads on one channel, then goes to the others 1 to 3 days later in new words and a different group or sub. Reasons: Reddit rules (r/wowforever one promo post a week; no copy-paste across subs), Facebook groups (one self-promo post a week each; the large groups ban repeats), and Threads ranks near-duplicates lower. Plan: logout (Reddit Oct 29, Threads Oct 31, Dvalin Gaming Nov 2), bags (Facebook Oct 30, Threads Nov 1), campfire (Threads Nov 3), fishing (Reddit Nov 6, Threads Nov 7), wheels (Threads Nov 4, Facebook Nov 8). YouTube has no post step: a channel Community post needs the channel to allow it; videos stay a manual task.
