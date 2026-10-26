@@ -66,3 +66,11 @@ Not every post is about an addon. Lead with a moment a player knows (the dead 20
 ## One moment, many channels, never the same post
 
 Each moment leads on one channel, then goes to the others 1 to 3 days later in new words and a different group or sub. Reasons: Reddit rules (r/wowforever one promo post a week; no copy-paste across subs), Facebook groups (one self-promo post a week each; the large groups ban repeats), and Threads ranks near-duplicates lower. Plan: logout (Reddit Oct 29, Threads Oct 31, Dvalin Gaming Nov 2), bags (Facebook Oct 30, Threads Nov 1), campfire (Threads Nov 3), fishing (Reddit Nov 6, Threads Nov 7), wheels (Threads Nov 4, Facebook Nov 8). YouTube has no post step: a channel Community post needs the channel to allow it; videos stay a manual task.
+
+## YouTube: where to comment (searched 2026-10-26)
+
+Videos about WoW Forever addons, 3 to 7 days old, with viewers trading tips in the comments. Reply under a viewer's comment that already talks about the same idea; one addon per video, new wording each time; never reply under a pinned affiliate-link comment.
+- Planned: Team Overpowered "I Tried YOUR WoW Forever Immersive Addon Tips" (Immersion, done); Bhfior "The Addons I'm Using for LAUNCH" (Immersion, under a Spoken fan); Scottejaye "Top 10 Addons" 187K views (Wheel, under the Opie-like comment).
+- Maybe later: Tactyks "BEST QoL and UI Addons for Launch" (29K; viewers list addons they recommend), Broog "The ONLY 2 Addons", Seano "BEST Addons", DoubleT "QoL Features", Forever Crossroads "16 Addons".
+- Skip: Controller Forever's own setup video (a competing controller addon; it would read as hijacking), the Esfand and Primeagen streams, the Asmongold addon-TOS talk, "One-Button Fishing Addons Should Be Banned" (our Fishing module should not be pitched there).
+- Tone seen in the comments: "Spoken + UIDialog has been life-changing", "An addon I can't live without is...", "Author of OneForAll here. Thanks for mentioning my addon". Addon authors introduce themselves in one line; viewers are friendly to that.
