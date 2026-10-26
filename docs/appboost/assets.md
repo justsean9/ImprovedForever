@@ -20,3 +20,11 @@ Originals are in `~/Downloads` (4K, 60 fps, too big to upload); the 1080p, 30 fp
 - `dist/media/campaign/wheel-camping.png`: Camping wheel (Basic Campfire Kit, Fish Bowl), 2000 px wide.
 - `dist/media/campaign/wheel-consumables.png`: Consumables wheel mid-fight, 2000 px wide.
 - Not released yet: the Camp module (0.1.0) has no CurseForge project or tag. Don't link it until it does.
+
+## Frames from the long recordings (2026-10-26, local only)
+
+Sources (on the Mac, 3 to 20 GB each, not in the repo): `~/Desktop/CleanShot 2026-10-20 at 23.44.22.mp4` (camp scene, 4.8 min), `CleanShot 2026-10-22 at 23.19.52.mp4` (Tirisfal leveling, 27 min), `CleanShot 2026-10-23 at 08.21.08.mp4` (long; mostly desktop windows, not usable), `CleanShot 2026-10-23 at 08.54.16.mp4` (questing, ends in the logout scene).
+- `dist/media/campaign/frames/v1_01.jpg` to `v4_10.jpg`: ten full-size (3838x2160) frames per recording, taken at even spacing (v1 = 20 Oct, v2 = 22 Oct, v3 = 23 Oct 08.21, v4 = 23 Oct 08.54). Good ones: v1_06 (character at a campfire), v2_04 (bags open at a campfire), v2_09 (Destroy window), v1_01 to v1_04 and v1_08 (camp scene shots). The `v3_*` frames show desktop windows (Claude, Battle.net): do not use.
+- Social images (made with the social-media skill, scene from `v1_06`): `dist/media/campaign/social/giveaway_square.png` (1080x1080: campfire, "GIVEAWAY", a "2 CODES" badge, no code shown). Spec `giveaway_sq.json` and the scene in `work/`.
+- All of `dist/` is git-ignored, so none of these is committed.
+- `dist/media/campaign/world-boss-1080.mp4`: 33 s, the last beta day's world boss (Thunderaan, Elwynn Forest, Brackwell Pumpkin Patch, a level 10 character). 1080p, no sound, chat left visible (the user checked: nothing sensitive; it faintly shows an Improved Forever Immersion error line). Original `~/Downloads/world-boss.mp4`. `world-boss-1080-clean.mp4` is the same with the chat blurred.
