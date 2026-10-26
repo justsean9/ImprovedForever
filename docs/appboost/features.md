@@ -1,0 +1,17 @@
+# Features (shipped, per README.md / CHANGELOG.md / dist/curseforge/*.md)
+
+- **Core**: button glyphs, configuration panel (double-tap Menu or `/if`), Bindings tab (controller press and keyboard/mouse press per binding), bag clean-up, touchpad corner actions (incl. double-tap), shared item verdict, bundled game data.
+- **Wheel**: radial wheels on R3 combos; built in Quest Items, Consumables, Emotes, Improved Forever; custom wheels (spells, items, macros, emotes, chat phrases, totems, trinket swap); recent action slot.
+- **Vibration**: vibration on game events and spell casts, per-action patterns.
+- **Minimap**: names beside minimap dots (herbs, ore, quests, NPCs, party), gathering alerts.
+- **Map**: peek map.
+- **Chat**: pick a chat line and the links in it with the pad; Cross opens an item in the Wiki.
+- **Auction**: controller auction window, Buy/Sell/Owned pages, prices over time, tasks.
+- **Junk**: marks junk (quests, recipes, auction prices, class, soulbound), L2+L3 to mark, vendor Sell All Junk, Destroy panel, loot-window destroy when bags are full.
+- **Wiki**: hold R3 on an item for drops, vendors, recipes, quests, auction prices; search any item by name; fishing waters. Data from QuestieDB.
+- **Journal**: first-person diary of each day, per character, read as a leather book.
+- **Fishing**: fishing mode (R2 twice or double right-click), per-cast scene, stringer, Fish Collection with first-catch cinematic, camera framing; mouse fishing.
+- **Camp**: sitting by a campfire as a cutscene.
+- **Immersion**: HUD rework: target header, player ring, spell-diamond gamepad bar, party/pet cards, nameplates, debuffs, recent loot tiles, NPC subtitles, first-time tour (`/if tour`). Needs Journal and Spoken.
+- **QuestTracker**: rebuilt objective tracker with sorting (zone, level, title, distance, completed), completion sound, full pad support.
+- Square shoots your wand (Core 0.11.0).

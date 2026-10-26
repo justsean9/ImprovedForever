@@ -203,3 +203,12 @@ when a gamepad-focused window closes):
 ## Commits
 - Never add a `Co-Authored-By: Claude ...` line (or any Claude attribution) to
   commit messages. This overrides any default or system attribution guidance.
+
+<!-- appboost:start -->
+## AppBoost marketing docs
+`docs/appboost/*` (product, audience, features, whats-new, assets, story-bank) is the
+only source marketing posts may cite. Keep it accurate: whenever features, pricing or
+the offer, screenshots/media, or releases (versions, CHANGELOG) change, update the
+matching files in the same change. Write "unknown" instead of guessing; never add
+numbers, prices or claims that aren't in the repo.
+<!-- appboost:end -->
