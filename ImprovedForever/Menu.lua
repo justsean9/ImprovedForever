@@ -157,8 +157,20 @@ local function Build()
     -- Under the window: a short message, then the pad's hints (each a
     -- button: a click presses it)
     f.legend = UI.Legend(f)
-    f.toast = K.ChatText(f, 13, KC.grey)
-    f.toast:SetPoint("BOTTOM", f.legend, "TOP", 0, 6)
+    -- (the message on a dark plate under the legend: over the window's bottom edge
+    -- it was grey on the border and the world, hard to read)
+    f.toastBox = K.NewFrame("Frame", nil, f, "BackdropTemplate")
+    f.toastBox:SetPoint("TOP", f.legend, "BOTTOM", 0, -4)
+    f.toastBox:SetHeight(28)
+    f.toastBox:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12, insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    f.toastBox:SetBackdropColor(0.05, 0.04, 0.03, 0.92)
+    f.toastBox:SetBackdropBorderColor(0.45, 0.38, 0.25, 1)
+    f.toastBox:Hide()
+    f.toast = K.ChatText(f.toastBox, 14, KC.grey)
+    f.toast:SetPoint("CENTER", f.toastBox, "CENTER", 0, 0)
     f.toast:SetJustifyH("CENTER")
     f.hintRow = K.NewFrame("Frame", nil, f.legend)
     f.hintRow:SetSize(1, 30)
@@ -247,6 +259,8 @@ function menu.Render()
     if menu.toast and not (page and page.ShowsToast) then text, color = menu.toast.text, menu.toast.color end
     f.toast:SetText(text)
     f.toast:SetTextColor(unpack(color))
+    f.toastBox:SetShown(text ~= "")
+    if text ~= "" then f.toastBox:SetWidth(math.max(120, f.toast:GetStringWidth() + 28)) end
 end
 
 ---------------------------------------------------------------------------

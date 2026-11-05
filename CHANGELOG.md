@@ -7,6 +7,10 @@
 - What's said near you appears as subtitles.
 - Logging out is a scene of its own, with a countdown, a recap and a button to cancel.
 
+## Core 0.12.1
+
+- The short messages in the options window ("Notification" line) sit on a dark plate under the buttons legend and are a bit bigger, so they are readable.
+
 ## Core 0.12.0
 
 - **Double-tap the touchpad corners** to run a window action; the bind editor lists them and the layer text shows the pad's glyphs.
