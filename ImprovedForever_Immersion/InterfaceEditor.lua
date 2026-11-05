@@ -173,7 +173,8 @@ local ITEMS = {
     Item({
         key = "npcDialog", group = "body", section = "NPC dialog", label = "NPC dialog as subtitles",
         tip = "NPC talk (greetings, quests, gossip) as subtitles low in the middle, in place of the game's "
-            .. "window. Pad and mouse both work. With Spoken installed, its voice reads the words.",
+            .. "window. Pad and mouse both work. With Spoken installed, its voice reads the words. With "
+            .. "DialogueUI installed, it keeps the talking and this stays off.",
     }, Toggle("npcDialog", "NPC dialog as subtitles", function() IN.NpcDialog.Apply() end)),
     Item({
         key = "auctionScene", group = "body", section = "Auction house", label = "Auction house scene",

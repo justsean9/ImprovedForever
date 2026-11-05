@@ -17,6 +17,10 @@
 - The Buy and Owned pages are redesigned as a scene: a grid of items on Buy, capsule status tags on Owned.
 - Immersion has a toggle for the auction house scene; switch it off to get the classic window back.
 
+## Immersion 0.4.1
+
+- Works next to DialogueUI: with it installed, DialogueUI keeps the NPC talking and the NPC subtitles stay off, while the rest of Immersion runs as usual.
+
 ## Immersion 0.4.0
 
 - A first-time tour in the middle of the screen, in the header's look: the pages' names on a gold rule, revealed one by one with a diamond showing the current page's picture, the page's example in the middle made of the real party cards, action bar tiles, recent loot tiles, cast line and header. A diamond button on the rule reveals the next page; Close under the words (B with the pad, Esc). `/if tour` plays it again.

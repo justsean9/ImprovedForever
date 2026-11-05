@@ -1683,8 +1683,15 @@ local function Off()
     panel:Hide()
 end
 
+-- DialogueUI (its own NPC dialog) loaded: it keeps the talking, ours stays off
+-- so the two never draw over each other. The rest of Immersion runs on.
+local function Yielded()
+    return C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("DialogueUI") or false
+end
+ND.Yielded = Yielded
+
 local function Tick()
-    if not (IF.db and IN.Settings().npcDialog) then return Off() end
+    if not (IF.db and IN.Settings().npcDialog) or Yielded() then return Off() end
     local gossip, quest = _G.GossipFrame, _G.QuestFrame
     local open = (gossip and gossip:IsShown()) or (quest and quest:IsShown())
     if not open then return Off() end
