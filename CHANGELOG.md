@@ -19,6 +19,7 @@
 
 ## Immersion 0.4.1
 
+- The names over mobs have a font choice (Morpheus, Friz Quadrata, Arial Narrow, Skurri) and a size, in the Immersion tab under Nameplates.
 - Works next to DialogueUI: with it installed, DialogueUI keeps the NPC talking and the NPC subtitles stay off, while the rest of Immersion runs as usual.
 
 ## Immersion 0.4.0

@@ -144,9 +144,40 @@ local function Draw(p)
     p:SetShown(p.alpha > 0.01)
 end
 
+-- The name's font and size, from the settings (N.FONTS: the Interface tab's
+-- choices); the game's standard font when a file can't be set
+local N = {}
+IN.Nameplates = N
+
+N.FONTS = {
+    { key = "morpheus", name = "Morpheus", file = HS.FONT },
+    { key = "friz", name = "Friz Quadrata", file = "Fonts\\FRIZQT__.TTF" },
+    { key = "arial", name = "Arial Narrow", file = "Fonts\\ARIALN.TTF" },
+    { key = "skurri", name = "Skurri", file = "Fonts\\skurri.ttf" },
+}
+N.SIZE_MIN, N.SIZE_MAX, N.SIZE_DEFAULT = 8, 24, NAME_SIZE
+
+local function NameFont()
+    local s = IN.Settings()
+    local file = HS.FONT
+    for _, f in ipairs(N.FONTS) do
+        if f.key == s.nameplateFont then file = f.file end
+    end
+    local size = math.max(N.SIZE_MIN, math.min(N.SIZE_MAX, tonumber(s.nameplateNameSize) or NAME_SIZE))
+    return file, size
+end
+
+local function StyleName(p)
+    local file, size = NameFont()
+    if p.nameFile == file and p.nameSize == size then return end
+    if not p.name:SetFont(file, size, "") then p.name:SetFont(STANDARD_TEXT_FONT, size, "") end
+    p.nameFile, p.nameSize = file, size
+end
+
 local function Refresh(p)
     local unit = p.unit
     if not unit then return end
+    StyleName(p)
     Try(p.name.SetText, p.name, UnitName(unit))
     if Flag(UnitIsDeadOrGhost, unit) then
         p.name:SetTextColor(0.5, 0.5, 0.5)
@@ -176,8 +207,6 @@ end
 -- The game's plates in play: unit token -> { game plate, ours }
 ---------------------------------------------------------------------------
 local active = {}
-local N = {}
-IN.Nameplates = N
 
 local function HideGame(game, on)
     local ok, unitFrame = pcall(function() return game.UnitFrame end)

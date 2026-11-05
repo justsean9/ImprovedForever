@@ -61,6 +61,39 @@ local ITEMS = {
             .. "Needs the nameplates on.",
     }, Toggle("nameplateDebuffs", "Nameplate debuffs", function() IN.Nameplates.Apply() end)),
     Item({
+        key = "nameplateFont", group = "top", section = "Nameplates", label = "Nameplate name font",
+        tip = "The font of the names over mobs: Morpheus (the default), Friz Quadrata, Arial Narrow or Skurri.",
+        value = function() return IN.Settings().nameplateFont end,
+        text = function()
+            for _, f in ipairs(IN.Nameplates.FONTS) do
+                if f.key == IN.Settings().nameplateFont then return f.name end
+            end
+            return IN.Nameplates.FONTS[1].name
+        end,
+        options = function()
+            local list = {}
+            for _, f in ipairs(IN.Nameplates.FONTS) do list[#list + 1] = { action = f.key, name = f.name } end
+            return list
+        end,
+        choose = function(action)
+            IN.Settings().nameplateFont = action
+            IN.Nameplates.Apply()
+        end,
+    }),
+    {
+        key = "nameplateNameSize", group = "top", section = "Nameplates", label = "Nameplate name size",
+        tip = "How big the names over mobs are.",
+        slider = {
+            min = 8, max = 24, step = 1,
+            get = function() return IN.Settings().nameplateNameSize end,
+            set = function(n)
+                IN.Settings().nameplateNameSize = n
+                IN.Nameplates.Apply()
+            end,
+            format = function(n) return tostring(n) end,
+        },
+    },
+    Item({
         key = "questArrow", group = "top", section = "Quests", label = "Quest arrow",
         tip = "The way to your focused quest near the top: its name, the yards left, and a diamond arrow "
             .. "that turns green as you head its way. Gives its place to the target, zone names and notices.",
