@@ -444,6 +444,50 @@ B.Add({
 })
 
 ---------------------------------------------------------------------------
+-- Selling: a press of its own for the vendor's Sell All Junk (the Bindings tab, unbound until
+-- the player sets one): ours first, the game's greys too as the vendor's button does
+---------------------------------------------------------------------------
+function J.SellKey()
+    return IF.db and J.Settings().sellKey or nil
+end
+
+local sellWatch = CreateFrame("Frame")
+local sellWasDown = false
+sellWatch:SetScript("OnUpdate", function()
+    local key = J.SellKey()
+    if not key or not IsKeyDown or IF.InCombat() or not AtVendor() then
+        sellWasDown = false
+        return
+    end
+    local held, pressed = Parts(key)
+    local down = IsKeyDown(pressed) and (held and IsKeyDown(held) or (not held and not Modified()))
+    if down and not sellWasDown then J.PressSellAll() end
+    sellWasDown = down
+end)
+
+-- Sell All Junk from a press: every junk item a vendor buys (the greys too, which the vendor's own
+-- button sells), through the one seller above (a few at a time, buyback kept)
+function J.PressSellAll()
+    if run or IF.InCombat() or not AtVendor() then return end
+    local list = IV.Bags(function(e) return e.verdict == "junk" and J.MaySell(e, e, true) end)
+    J.Sell(list, { bulk = true, what = "junk item" })
+end
+
+B.Add({
+    id = "selljunk", label = "Sell All Junk", group = "Bags", tab = "bindings",
+    icon = IF.TEX .. "ic_fn_junkmark", context = "bags", order = 23,
+    desc = "Sells all the junk at the vendor",
+    tip = "At a vendor: sells all the junk (the greys and what this module finds) as its Sell All Junk button"
+        .. " does, 12 items at most a press unless Keep it buyable is off. Watched, not taken: the button"
+        .. " keeps its own action.",
+    accepts = B.NotDouble,
+    specs = function() return B.One(J.SellKey()) end,
+    set = function(spec) J.Settings().sellKey = spec or false end,
+    reset = function() J.Settings().sellKey = nil end,
+    run = function(down) if down then J.PressSellAll() end end,
+})
+
+---------------------------------------------------------------------------
 -- Item tooltips: the quest an ordinary item is kept for, in orange
 -- ("Needed for "Redridge Goulash""): the meat, the cloth a quest asks for
 -- (not the game's own quest items, which say so already, nor one a vendor

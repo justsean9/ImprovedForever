@@ -67,6 +67,10 @@
 
 - Double-tap the touchpad corners to act on the collection window.
 
+## Junk 0.8.0
+
+- A **Sell All Junk** binding (Bindings tab, Bags): at a vendor one press sells all the junk, the greys too, without going to the vendor's button. Unbound until you set one.
+
 ## Junk 0.7.3
 
 - Double-tap the touchpad corners to act on the Junk and Destroy windows.
