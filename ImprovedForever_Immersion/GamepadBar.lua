@@ -644,6 +644,21 @@ end
 
 local function Cooldown(b, native)
     local start, duration = SlotCooldown(native)
+    -- The global cooldown (the "GCD" setting, off by default): just the swipe over the tile,
+    -- none of a real cooldown's time, beat or end flash. A real cooldown on the tile wins.
+    local number = not (Secret(start) or Secret(duration)) and type(start) == "number"
+        and type(duration) == "number"
+    if number and duration > 0 and duration <= GCD_MAX and IN.Settings().gcd and not b.cdStart then
+        if b.gcdStart ~= start then
+            b.gcdStart = start
+            b.cooldown:SetCooldown(start, duration)
+        end
+        return
+    end
+    if b.gcdStart then
+        b.gcdStart = nil
+        if not b.cdStart then b.cooldown:Clear() end
+    end
     -- (none, a secret one, or the global cooldown: nothing)
     if Secret(start) or Secret(duration) or type(start) ~= "number" or type(duration) ~= "number"
         or duration <= GCD_MAX then

@@ -178,6 +178,11 @@ local ITEMS = {
         end,
     }),
     Item({
+        key = "gcd", group = "bottom", section = "Action bar", label = "Global cooldown",
+        tip = "A swipe over the action bar's tiles while the global cooldown runs (after any spell), so you "
+            .. "see when the next one can go. Off by default; the tiles show real cooldowns only.",
+    }, Toggle("gcd", "Global cooldown", function() IN.GamepadBar.Apply() end)),
+    Item({
         key = "hudAuras", group = "bottom", section = "Buffs & cooldowns", label = "Buffs along the bottom (experiment)",
         tip = "An experiment. The game's buffs and debuffs moved to the bottom, between the minion and "
             .. "party cards, written into your Edit Mode layout once.",
