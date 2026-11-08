@@ -1788,6 +1788,17 @@ end)
 
 IF.Input.OnChange(function() dirty = true end)
 
+-- The subtitle at its place: the default one plus the player's offset (the Immersion tab's
+-- sliders: px right, px up)
+function ND.Place()
+    local s = IF.db and IN.Settings()
+    panel:ClearAllPoints()
+    panel:SetPoint("BOTTOM", UIParent, "BOTTOM", s and s.dialogX or 0, BOTTOM_Y + (s and s.dialogY or 0))
+end
+
+IF.OnLogin(ND.Place)
+
 function ND.Apply()
+    ND.Place()
     dirty = true
 end

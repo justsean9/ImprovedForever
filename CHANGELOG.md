@@ -33,6 +33,7 @@
 
 ## Immersion 0.4.1
 
+- The NPC subtitle can be moved right / up in the Immersion tab (under NPC dialog), if the player frame or the lines cover its words.
 - Each piece of the bottom HUD has its own switch in the Immersion tab: the player card and ring, the health line, the power line and the action bar. Keep the action bar without the player frame and the lines, or the other way round.
 - **Global cooldown** option (off by default): a swipe over the action bar's tiles while the global cooldown runs, so you see when the next spell can go.
 - A face button (A, B, X, Y) that has an action of yours on it (the Bindings tab) shows that action's icon on the gamepad bar, not the game's slot under it, so the tile says what the press does.

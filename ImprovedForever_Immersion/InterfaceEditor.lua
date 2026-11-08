@@ -269,6 +269,33 @@ local ITEMS = {
             .. "window. Pad and mouse both work. With Spoken installed, its voice reads the words. With "
             .. "DialogueUI installed, it keeps the talking and this stays off.",
     }, Toggle("npcDialog", "NPC dialog as subtitles", function() IN.NpcDialog.Apply() end)),
+    {
+        key = "dialogX", group = "body", section = "NPC dialog", label = "NPC dialog: right",
+        tip = "Moves the NPC subtitle to the right (left with a minus), in pixels.",
+        slider = {
+            min = -900, max = 900, step = 10,
+            get = function() return IN.Settings().dialogX end,
+            set = function(n)
+                IN.Settings().dialogX = n
+                IN.NpcDialog.Apply()
+            end,
+            format = function(n) return tostring(n) end,
+        },
+    },
+    {
+        key = "dialogY", group = "body", section = "NPC dialog", label = "NPC dialog: up",
+        tip = "Moves the NPC subtitle up (down with a minus), in pixels, if the player frame or the lines "
+            .. "cover its words.",
+        slider = {
+            min = -150, max = 600, step = 10,
+            get = function() return IN.Settings().dialogY end,
+            set = function(n)
+                IN.Settings().dialogY = n
+                IN.NpcDialog.Apply()
+            end,
+            format = function(n) return tostring(n) end,
+        },
+    },
     Item({
         key = "auctionScene", group = "body", section = "Auction house", label = "Auction house scene",
         tip = "With the Auction module, the auction house as a scene in this look: no window frame, the "
