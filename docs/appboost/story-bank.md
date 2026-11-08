@@ -11,6 +11,7 @@
 | Wiki data from QuestieDB (Questie team) | README.md |
 | Parts adapted from Easy Controller - Forever by moust4ki (MIT) | README.md |
 | MIT license | README.md |
+| CurseForge selected "Improved Forever - Controller & Gamepad" as a featured project in the CurseForge app for this cycle (private message from a CurseForge Community Content Manager, about 2026-10-28; not a web-site badge; end date unknown) | CurseForge private message 431827 |
 | Download / user / star counts | unknown |
 | Release dates | unknown |
 | Testimonials, reviews | unknown (none in repo) |
