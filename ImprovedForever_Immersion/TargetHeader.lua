@@ -329,6 +329,8 @@ local castBox = CreateFrame("Frame", nil, look)
 castBox:SetSize(CAST_W, CAST_H)
 castBox:SetPoint("TOP", quest, "BOTTOM", 0, -CAST_GAP)
 castBox:Hide()
+-- (TargetAuras.lua hangs the target's buffs and debuffs under these)
+TH.look, TH.castBox = look, castBox
 local cast = CreateFrame("StatusBar", nil, castBox)
 cast:SetAllPoints()
 cast:SetStatusBarTexture(FILL.cast)

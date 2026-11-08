@@ -67,6 +67,11 @@ local ITEMS = {
             .. "its menu.",
     }, Toggle("target", "Target header", function() IN.UnitFrames.Apply() end)),
     Item({
+        key = "targetAuras", group = "top", section = "Target", label = "Target buffs and debuffs",
+        tip = "Your debuffs on the target and its buffs as small icons under the target header, with their time "
+            .. "left and stacks, filled by the game's own aura list (so they show in a fight too).",
+    }, Toggle("targetAuras", "Target buffs and debuffs", function() IN.TargetAuras.Apply() end)),
+    Item({
         key = "castRange", group = "top", section = "Target", label = "Target range",
         tip = "Out of reach of your longest-range harmful spell, the target's portrait turns grey and its "
             .. "health line faint.",
