@@ -1165,6 +1165,33 @@ local function NativeBars(pu)
     return { bars.topBar, bars.leftBar, bars.rightBar, bars.bottomBar, pu.LeftClassAction, pu.RightClassAction }
 end
 
+-- A face tile whose button has an action of the player's on it (the Bindings tab, Override.lua)
+-- shows that action's icon, not the game's slot under it: the press runs ours, so the tile
+-- must say so. Only with no trigger held (the top bar): an override is bound to the plain press.
+local function OverrideTile(b)
+    if not (IF.Override and b.keyName and IF.Binds.PadOverrides()) then return end
+    local action = IF.Override.Get(b.keyName)
+    if not action then return end
+    local _, texture = IF.ActionInfo(action)
+    if not texture then return end
+    local d = b.d
+    b.count:SetText("")
+    b.ring:Hide()
+    b.checkedFill:SetAlpha(0)
+    b.procFill:SetAlpha(0)
+    b.flashFill:SetAlpha(0)
+    b.timer:Hide()
+    if b.cdStart then
+        b.cooldown:Clear()
+        b.cdStart = nil
+    end
+    b.icon:SetTexture(texture)
+    b.icon:SetTexCoord(unpack(FULL))
+    b.icon:SetSize(d.side * ICON_FILL, d.side * ICON_FILL)
+    b.icon:SetRotation(TURN)
+    b.icon:SetVertexColor(1, 1, 1)
+end
+
 -- A class action of ours, shown while the game's is (it has one for the
 -- class, in a form...)
 local function MirrorClass(b, native)
@@ -1487,9 +1514,11 @@ local function Watch()
     local bar = pu.activeBar
     local picking = Picking()
     swap.want = picking and 1 or 0
+    local top = pu.actionBars and pu.actionBars.topBar
     for i, b in ipairs(buttons) do
         b.disabled = picking
         Mirror(b, Native(bar, i))
+        if bar == top then OverrideTile(b) end
     end
     MirrorClass(classLeft, pu.LeftClassAction)
     MirrorClass(classRight, pu.RightClassAction)

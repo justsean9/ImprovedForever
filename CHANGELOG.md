@@ -25,6 +25,7 @@
 
 ## Immersion 0.4.1
 
+- A face button (A, B, X, Y) that has an action of yours on it (the Bindings tab) shows that action's icon on the gamepad bar, not the game's slot under it, so the tile says what the press does.
 - The gamepad bar stays on the screen: on a small window or a low UI scale its right side (the class action and the button glyphs) was cut off by the screen's edge; it now moves in until all of it shows.
 - Names on a Russian, Korean or Chinese client show their letters (the header's, the target's and the nameplates') instead of empty squares: they use the game's own font there.
 - Place the HUD yourself, in the Immersion tab: the player frame can move right / up and be resized (50 to 150%; the pet and party cards follow it), and the header (the target, quest arrow, zone names, banners) can move right / up. Each change applies at once, out of combat.
