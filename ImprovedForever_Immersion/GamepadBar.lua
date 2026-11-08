@@ -1800,3 +1800,23 @@ function GB.Apply()
     shown = nil
     Watch()
 end
+
+-- The glyphs hang past the corner the groups are placed on (a class action's key, a
+-- corner glyph): on a small window or a low UI scale they ended off the screen's right
+-- edge, cut off. The holder moves in until all of it, glyphs too, is on the screen with
+-- EDGE px to spare (and back out when there is room again).
+local EDGE = 8
+local fit = 0
+local function Fit()
+    if not holder:IsShown() or InCombatLockdown() then return end
+    local _, _, r = GB.Rect()
+    if not r then return end
+    local over = r - (UIParent:GetWidth() * UIParent:GetEffectiveScale() - EDGE)
+    local k = holder:GetEffectiveScale()
+    local want = math.max(0, fit + over / k)
+    if math.abs(want - fit) < 0.5 then return end
+    fit = want
+    holder:ClearAllPoints()
+    holder:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -(MARGIN_X + fit), IN.BOTTOM)
+end
+IN.Watcher("gamepad bar fit", 0.5, Fit)
