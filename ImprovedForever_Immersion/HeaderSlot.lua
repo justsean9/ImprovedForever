@@ -18,7 +18,11 @@ IN.HeaderSlot = HS
 -- (the look: the camp summary's font, sizes and gold; the rule this far
 -- down from the screen's top, RULE_W each side of its middle; the name
 -- this far under it, past the diamond's foot)
-HS.FONT = "Fonts\\MORPHEUS.TTF"
+-- (Morpheus has Latin letters only: a Russian, Korean or Chinese client gets the game's own
+-- font, else every name is a row of empty squares)
+local locale = GetLocale()
+HS.LATIN = not (locale == "ruRU" or locale == "koKR" or locale == "zhCN" or locale == "zhTW")
+HS.FONT = HS.LATIN and "Fonts\\MORPHEUS.TTF" or STANDARD_TEXT_FONT
 HS.NAME_SIZE, HS.SMALL_SIZE, HS.WORDS_SIZE = 30, 13, 15
 HS.GOLD = { 1, 0.82, 0.45 }
 HS.RULE_Y, HS.RULE_W = 130, 260

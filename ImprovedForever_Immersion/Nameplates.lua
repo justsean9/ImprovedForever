@@ -163,6 +163,8 @@ local function NameFont()
     for _, f in ipairs(N.FONTS) do
         if f.key == s.nameplateFont then file = f.file end
     end
+    -- (the choices have Latin letters only, bar Arial Narrow's Cyrillic)
+    if not HS.LATIN then file = STANDARD_TEXT_FONT end
     local size = math.max(N.SIZE_MIN, math.min(N.SIZE_MAX, tonumber(s.nameplateNameSize) or NAME_SIZE))
     return file, size
 end

@@ -83,7 +83,8 @@ local ITEMS = {
     }, Toggle("nameplateDebuffs", "Nameplate debuffs", function() IN.Nameplates.Apply() end)),
     Item({
         key = "nameplateFont", group = "top", section = "Nameplates", label = "Nameplate name font",
-        tip = "The font of the names over mobs: Morpheus (the default), Friz Quadrata, Arial Narrow or Skurri.",
+        tip = "The font of the names over mobs: Morpheus (the default), Friz Quadrata, Arial Narrow or Skurri. "
+            .. "A Russian, Korean or Chinese client always uses the game's own font, which has their letters.",
         value = function() return IN.Settings().nameplateFont end,
         text = function()
             for _, f in ipairs(IN.Nameplates.FONTS) do
