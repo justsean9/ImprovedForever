@@ -139,14 +139,21 @@ def slug(folder):
     return "-".join(["improved", "forever"] + [w.lower() for w in words])
 
 
+# Other authors' addons our TOCs depend on: the TOC's name -> its CurseForge slug (the CurseForge app
+# then installs it with ours: Immersion needs Spoken)
+EXTERNAL = {"Spoken": "spoken"}
+
+
 def relations(folder):
-    """The file's relations: the TOC's Dependencies / OptionalDeps on our own addons"""
+    """The file's relations: the TOC's Dependencies / OptionalDeps on our own addons and on EXTERNAL ones"""
     found = []
     for field, kind in (("Dependencies", "requiredDependency"), ("OptionalDeps", "optionalDependency")):
         for dep in (toc_field(field, folder) or "").split(","):
             dep = dep.strip()
             if dep.startswith(ADDON) and (ROOT / dep / f"{dep}.toc").is_file():
                 found.append({"slug": slug(dep), "type": kind})
+            elif dep in EXTERNAL:
+                found.append({"slug": EXTERNAL[dep], "type": kind})
     return found
 
 
