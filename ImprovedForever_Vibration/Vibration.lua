@@ -175,9 +175,11 @@ V.MOVES = {
     -- Howl, Bloodrage, Berserker Rage
     burst = { 1449, 122, 120, 11113, 15237, 8122, 6673, 1160, 5246, 12323, 2687, 18499 },
     -- The seals (Righteousness, the Crusader, Command, Light, Wisdom,
-    -- Justice), the blessings, Inner Fire, Renew, Lightning Shield
-    seal = { 20154, 21082, 20375, 20165, 20166, 20164, 19740, 19742, 20217, 1044, 1038, 19977, 588, 139,
-        324 },
+    -- Justice), the blessings, Inner Fire, Renew, Lightning Shield; and
+    -- Forever's own seals: Might, Protection, Fury, Reckoning, Sacrifice,
+    -- Martyrdom (their base IDs in Forever's spell table)
+    seal = { 20154, 21082, 20375, 20165, 20166, 20164, 19740, 19742, 20217, 1044, 588, 139,
+        324, 626, 1023, 1037, 3694, 13903, 407798 },
     judge = { 20271, 20066 },                               -- Judgement, Repentance
     -- Power Word: Shield, Divine Shield, Divine Protection, Blessing of
     -- Protection, Holy Shield, Ice Barrier, Ice Block, Mana Shield, Shield

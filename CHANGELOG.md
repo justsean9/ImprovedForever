@@ -7,6 +7,10 @@
 - What's said near you appears as subtitles.
 - Logging out is a scene of its own, with a countdown, a recap and a button to cancel.
 
+## Vibration 0.6.3
+
+- Forever's own seals vibrate like the others: Seal of Fury, Might, Protection, Reckoning, Sacrifice and Martyrdom (only the Classic ones did).
+
 ## Core 0.12.1
 
 - **Square shoots the wand** is off until you turn it on (General tab, or `/if wandshoot`). It was on for everyone with a wand and took Square from players who never asked for it (the melee swing or the loot press became a wand shot).
