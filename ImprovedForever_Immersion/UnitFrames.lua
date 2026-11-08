@@ -566,6 +566,32 @@ function UF.Watched(frame, on)
     end
 end
 
+-- The player frame and the target's button at the places the sliders give (secure frames:
+-- out of combat only, else after it). An anchor's offset counts in the frame's own scale, so the
+-- player's is divided by it.
+function UF.Place()
+    if IF.InCombat() then
+        pending = true
+        return
+    end
+    local s = Settings()
+    local scale = math.max(0.5, math.min(1.5, (tonumber(s.playerScale) or 100) / 100))
+    player:SetScale(scale)
+    player:ClearAllPoints()
+    player:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", (PLAYER_X + (s.playerX or 0)) / scale,
+        (PLAYER_Y + (s.playerY or 0)) / scale)
+    local hx, hy = HS.Offset()
+    target:ClearAllPoints()
+    target:SetPoint("CENTER", UIParent, "TOP", hx, -HS.RULE_Y + TARGET_Y + hy)
+    HS.Place()
+end
+
+-- The player frame's right edge on the screen (UIParent's units): a scaled frame answers in its own
+function UF.PlayerRight()
+    local right = player:GetRight()
+    return right and right * player:GetScale() or nil
+end
+
 function UF.Apply()
     if IF.InCombat() then
         pending = true
@@ -573,6 +599,7 @@ function UF.Apply()
     end
     pending = nil
     local s = Settings()
+    UF.Place()
     player:SetShown(s.player)
     UF.Watched(target, s.target)
     Watch()

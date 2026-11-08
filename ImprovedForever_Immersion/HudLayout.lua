@@ -171,7 +171,7 @@ PIECES.auras = function(layout)
     local debuffs = indices and System(layout, Enum.EditModeSystem.AuraFrame, indices.DebuffFrame)
     if not (buffs and debuffs) then return false end
     local player = IN.UnitFrames.player
-    local x = (player:GetRight() or 140) + 16 + MINION_W + AURA_GAP
+    local x = (IN.UnitFrames.PlayerRight() or 140) + 16 + MINION_W + AURA_GAP
     local setting = Enum.EditModeAuraFrameSetting or {}
     local percent = AuraPercent()
     local row = AURA_BASE * percent / 100 + AURA_TIME

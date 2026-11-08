@@ -96,6 +96,8 @@ local DEFAULTS = {
     nameplates = true,  -- the nameplates over mobs in our look: name, health line, level (the game's hidden)
     nameplateFont = "morpheus", -- the nameplates' name font (Nameplates.lua: N.FONTS)
     nameplateNameSize = 13, -- and its size
+    playerX = 0, playerY = 0, playerScale = 100, -- the player frame's place (px right, px up) and size (%)
+    headerX = 0, headerY = 0, -- the header's (target, banners, quest arrow) place, px right / up
     nameplateDebuffs = true, -- your debuffs on the mob, under its nameplate (the game fills them, in a fight too)
     castRange = true,   -- the target header greyed while an enemy is out of your reach
     hpLine = true,      -- your health as a bar over the power line

@@ -338,7 +338,7 @@ end
 
 -- (the buffs' lane: after the minion card, to the party's row)
 local function BuffLane()
-    local start = (UF.player:GetRight() or 140) + 16 + MINION_W + START_GAP
+    local start = (UF.PlayerRight() or 140) + 16 + MINION_W + START_GAP
     local stop = UIParent:GetWidth() / 2 - (IN.PartyCards.ROW_HALF or 164) - MIDDLE_GAP
     return start, math.max(start + 1, stop)
 end

@@ -37,6 +37,24 @@ local function BottomHud(on)
     IN.ChatFade.Apply()
 end
 
+-- A slider on a setting that places the HUD: each change places it again
+local function Place(key, label, tip, min, max, step, format)
+    return {
+        key = key, group = key:find("^player") and "bottom" or "top", section = key:find("^player") and "Player frame"
+            or "Header position", label = label, tip = tip,
+        slider = {
+            min = min, max = max, step = step,
+            get = function() return IN.Settings()[key] end,
+            set = function(n)
+                IN.Settings()[key] = n
+                IN.UnitFrames.Place()
+            end,
+            format = format or function(n) return tostring(n) end,
+        },
+    }
+end
+local function Percent(n) return n .. "%" end
+
 local ITEMS = {
     Item({
         key = "target", group = "top", section = "Target", label = "Target header",
@@ -49,6 +67,9 @@ local ITEMS = {
         tip = "Out of reach of your longest-range harmful spell, the target's portrait turns grey and its "
             .. "health line faint.",
     }, Toggle("castRange", "Target range", function() end)),
+    Place("headerX", "Header: right", "Moves the header (the target, quest arrow, zone names, banners) to the "
+        .. "right (left with a minus), in pixels.", -900, 900, 10),
+    Place("headerY", "Header: up", "Moves the header up (down with a minus), in pixels.", -700, 100, 10),
     Item({
         key = "nameplates", group = "top", section = "Nameplates", label = "Nameplates",
         tip = "The nameplates over mobs in our look: the name in gold, a thin health line in the nameplate's "
@@ -122,6 +143,11 @@ local ITEMS = {
         for _, key in ipairs(BOTTOM) do if s[key] then return true end end
         return false
     end, BottomHud, "Player frame")),
+    Place("playerX", "Player frame: right", "Moves the player frame (with its pet and party cards) to the right "
+        .. "(left with a minus), in pixels. Out of combat only.", -200, 1400, 10),
+    Place("playerY", "Player frame: up", "Moves the player frame up (down with a minus), in pixels.", -50, 700, 10),
+    Place("playerScale", "Player frame: size", "How big the player frame is, in percent. The pet and party "
+        .. "cards stay the same size and follow it.", 50, 150, 5, Percent),
     Item({
         key = "breath", group = "bottom", section = "Player frame", label = "Breath",
         tip = "Under water, your player frame fills with blue and drains as your breath runs out, in place "

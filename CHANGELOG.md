@@ -24,6 +24,7 @@
 
 ## Immersion 0.4.1
 
+- Place the HUD yourself, in the Immersion tab: the player frame can move right / up and be resized (50 to 150%; the pet and party cards follow it), and the header (the target, quest arrow, zone names, banners) can move right / up. Each change applies at once, out of combat.
 - The names over mobs have a font choice (Morpheus, Friz Quadrata, Arial Narrow, Skurri) and a size, in the Immersion tab under Nameplates.
 - Works next to DialogueUI: with it installed, DialogueUI keeps the NPC talking and the NPC subtitles stay off, while the rest of Immersion runs as usual.
 

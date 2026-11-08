@@ -95,14 +95,30 @@ HS.Origin = CreateFrame("Frame", nil, UIParent)
 HS.Origin:SetSize(1, 1)
 HS.Origin:SetPoint("CENTER", UIParent, "TOP", 0, -HS.RULE_Y)
 
+-- The player's own offset of the header (the Immersion tab's sliders): from the screen's
+-- top middle, right and up positive
+function HS.Offset()
+    local s = IF.db and IF.db.interface
+    return s and s.headerX or 0, s and s.headerY or 0
+end
+
+-- The header at its place: the default one plus the player's offset (not while the tour has it)
+function HS.Place()
+    if HS.moved then return end
+    local x, y = HS.Offset()
+    HS.Origin:ClearAllPoints()
+    HS.Origin:SetPoint("CENTER", UIParent, "TOP", x, -HS.RULE_Y + y)
+end
+
 function HS.MoveOrigin(frame, x, y)
+    HS.moved = true
     HS.Origin:ClearAllPoints()
     HS.Origin:SetPoint("CENTER", frame, "TOP", x or 0, y or 0)
 end
 
 function HS.ResetOrigin()
-    HS.Origin:ClearAllPoints()
-    HS.Origin:SetPoint("CENTER", UIParent, "TOP", 0, -HS.RULE_Y)
+    HS.moved = nil
+    HS.Place()
 end
 
 local ruleFrame = CreateFrame("Frame", "ImprovedForeverHeaderRule", UIParent)

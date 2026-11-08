@@ -12,6 +12,6 @@
 - **Journal**: first-person diary of each day, per character, read as a leather book.
 - **Fishing**: fishing mode (R2 twice or double right-click), per-cast scene, stringer, Fish Collection with first-catch cinematic, camera framing; mouse fishing.
 - **Camp**: sitting by a campfire as a cutscene.
-- **Immersion**: HUD rework: target header, player ring, spell-diamond gamepad bar, party/pet cards, nameplates (name font and size), debuffs, recent loot tiles, NPC subtitles (stay off when DialogueUI is installed), first-time tour (`/if tour`). Needs Journal and Spoken.
+- **Immersion**: HUD rework: target header, player ring (movable and resizable), header (movable), spell-diamond gamepad bar, party/pet cards, nameplates (name font and size), debuffs, recent loot tiles, NPC subtitles (stay off when DialogueUI is installed), first-time tour (`/if tour`). Needs Journal and Spoken.
 - **QuestTracker**: rebuilt objective tracker with sorting (zone, level, title, distance, completed), completion sound, full pad support.
 - Square shoots your wand (Core 0.11.0).
