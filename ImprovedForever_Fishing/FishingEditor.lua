@@ -23,6 +23,33 @@ local ITEMS = {
             .. "camera, when no window is open (else they're the window's). Off: no line, the presses still "
             .. "work.",
     }, Toggle("guide", "Start / stop guide", function() end)),
+    {
+        key = "guideX", group = "fishing", label = "Guide: right",
+        tip = "Moves the start / stop guide to the right, in pixels (it sits at the top left, over the game's "
+            .. "targeting help for the controller).",
+        slider = {
+            min = 0, max = 1200, step = 10,
+            get = function() return F.Settings().guideX end,
+            set = function(n)
+                F.Settings().guideX = n
+                F.PlaceGuide()
+            end,
+            format = function(n) return tostring(n) end,
+        },
+    },
+    {
+        key = "guideY", group = "fishing", label = "Guide: down",
+        tip = "Moves the start / stop guide down, in pixels.",
+        slider = {
+            min = 0, max = 600, step = 10,
+            get = function() return F.Settings().guideY end,
+            set = function(n)
+                F.Settings().guideY = n
+                F.PlaceGuide()
+            end,
+            format = function(n) return tostring(n) end,
+        },
+    },
     Item({
         key = "bar", group = "fishing", label = "Fishing bar",
         tip = "Each cast of Fishing as a scene on the right of the screen: the bobber thrown out on its line, "

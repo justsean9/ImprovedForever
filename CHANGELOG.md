@@ -59,6 +59,10 @@
 
 - Recent loot tiles are marked with badges for upgrades, quest items, recipes, auction items, rarities and collectibles.
 
+## Fishing 0.2.2
+
+- The start / stop guide can be moved right and down in the Fishing tab: it no longer has to cover the game's controller targeting help at the top left.
+
 ## Fishing 0.2.1
 
 - Double-tap the touchpad corners to act on the collection window.

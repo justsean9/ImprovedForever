@@ -21,6 +21,7 @@ local DEFAULTS = {
     camera = true,      -- and with it the camera over your shoulder (View.lua)
     firstCatch = true,  -- something caught for the first time ever: a moment of its own (FirstCatch.lua)
     chat = true,        -- with the fishing view, the chat by the stringer, faint (Chat.lua)
+    guideX = 0, guideY = 0, -- the start / stop guide's place: px right, px down from the top left
     guide = true,       -- the line on the screen: how to start fishing, how to stop (Mode.lua)
     skillLine = true,   -- with the fishing view, the fishing skill along the bottom edge (SkillLine.lua)
 }
