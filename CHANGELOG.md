@@ -15,7 +15,7 @@
 
 - Forever's own seals vibrate like the others: Seal of Fury, Might, Protection, Reckoning, Sacrifice and Martyrdom (only the Classic ones did).
 
-## Core 0.12.1
+## Core 0.13.0
 
 - **Square shoots the wand** is off until you turn it on (General tab, or `/if wandshoot`). It was on for everyone with a wand and took Square from players who never asked for it (the melee swing or the loot press became a wand shot).
 - **Controller buttons** switch in the General tab: off, Improved Forever leaves the controller's buttons to the game (the wheels' R3 combos, the actions put on buttons, Square shooting the wand, the touchpad corners). The modules' windows and the mouse and keyboard presses work as before.
@@ -31,7 +31,7 @@
 - The Buy and Owned pages are redesigned as a scene: a grid of items on Buy, capsule status tags on Owned.
 - Immersion has a toggle for the auction house scene; switch it off to get the classic window back.
 
-## Immersion 0.4.1
+## Immersion 0.5.0
 
 - **Target buffs and debuffs**: your debuffs on the target and its buffs as small icons under the target header (a switch in the Immersion tab), read by the game's own aura list so they show in a fight too.
 - The NPC subtitle can be moved right / up in the Immersion tab (under NPC dialog), if the player frame or the lines cover its words.
