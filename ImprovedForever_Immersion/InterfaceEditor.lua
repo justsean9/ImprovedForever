@@ -25,9 +25,7 @@ local FOCUS_NAMES = { auto = "Automatic", tank = "Tank", healer = "Healer", off 
 -- sit with it), so one setting writes them all
 local BOTTOM = { "player", "minion", "hpLine", "mpLine", "xp", "pad", "chatAbove", "chatDim" }
 
-local function BottomHud(on)
-    local s = IN.Settings()
-    for _, key in ipairs(BOTTOM) do s[key] = on end
+local function ApplyBottom()
     IN.UnitFrames.Apply()
     IN.PartyCards.Apply()
     IN.PlayerHealth.Apply()
@@ -35,6 +33,12 @@ local function BottomHud(on)
     IN.GamepadBar.Apply()
     IN.HudLayout.Apply()
     IN.ChatFade.Apply()
+end
+
+local function BottomHud(on)
+    local s = IN.Settings()
+    for _, key in ipairs(BOTTOM) do s[key] = on end
+    ApplyBottom()
 end
 
 -- A slider on a setting that places the HUD: each change places it again
@@ -149,6 +153,26 @@ local ITEMS = {
     Place("playerY", "Player frame: up", "Moves the player frame up (down with a minus), in pixels.", -50, 700, 10),
     Place("playerScale", "Player frame: size", "How big the player frame is, in percent. The pet and party "
         .. "cards stay the same size and follow it.", 50, 150, 5, Percent),
+    -- (each piece on its own, for those who want the action bar without the rest)
+    Item({
+        key = "player", group = "bottom", section = "Player frame", label = "Player card and ring",
+        tip = "Your player card with its experience ring bottom left, and your pet's card. Off, the game's own "
+            .. "show. The lines and the action bar are their own switches.",
+    }, OnOff(function() return IN.Settings().player end, function(on)
+        local s = IN.Settings()
+        s.player, s.minion, s.xp = on, on, on
+        ApplyBottom()
+    end, "Player card and ring")),
+    Item({
+        key = "hpLine", group = "bottom", section = "Player frame", label = "Health line",
+        tip = "Your health as a line along the bottom edge of the screen. Off, no line (the player card still "
+            .. "shows it).",
+    }, Toggle("hpLine", "Health line", ApplyBottom)),
+    Item({
+        key = "mpLine", group = "bottom", section = "Player frame", label = "Power line",
+        tip = "Your mana, rage or energy as a line along the bottom edge of the screen (the green bar on a "
+            .. "wide screen). Off, no line.",
+    }, Toggle("mpLine", "Power line", ApplyBottom)),
     Item({
         key = "breath", group = "bottom", section = "Player frame", label = "Breath",
         tip = "Under water, your player frame fills with blue and drains as your breath runs out, in place "
@@ -161,6 +185,10 @@ local ITEMS = {
             .. "the auction house, rares, mounts, pets and toys to learn, and bags that open. The rest "
             .. "flies to the bags' tile. Mouse over one for its tooltip.",
     }, Toggle("recentLoot", "Recent loot (experiment)", function() IN.RecentLoot.Apply() end)),
+    Item({
+        key = "pad", group = "bottom", section = "Action bar", label = "Action bar",
+        tip = "The gamepad bar as spell tiles bottom right. Off, the game's own gamepad bar shows.",
+    }, Toggle("pad", "Action bar", ApplyBottom)),
     Item({
         key = "padStyle", group = "bottom", section = "Action bar", label = "Action bar style",
         tip = "The shape of the action bar's tiles (and the party spells' and cast bar's): Diamonds, Squares or "
