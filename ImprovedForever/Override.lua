@@ -153,8 +153,9 @@ function O.Apply()
     pending = false
     ClearOverrideBindings(owner)
     if IF.WandShoot then IF.WandShoot.Bind(nil) end
-    -- Only while the game has the gamepad's focus (Binds.lua)
-    if not IF.Binds.InGame() then return end
+    -- Only while the game has the gamepad's focus (Binds.lua), and the switch is on
+    if not IF.Binds.PadOverrides() then wipe(O.watched) end
+    if not IF.Binds.InGame() or not IF.Binds.PadOverrides() then return end
     -- Fires on the press or the release, as the game's action buttons do
     local get = C_CVar and C_CVar.GetCVar or GetCVar
     local onDown = get and get("ActionButtonUseKeyDown") ~= "0"
@@ -320,7 +321,8 @@ watchOwner:SetScript("OnUpdate", function()
         end
         return
     end
-    if #O.watched == 0 or IF.InCombat() or not IF.Binds.InGame() or (IF.Menu and IF.Menu.IsOpen()) then
+    if #O.watched == 0 or IF.InCombat() or not IF.Binds.InGame() or not IF.Binds.PadOverrides()
+        or (IF.Menu and IF.Menu.IsOpen()) then
         return
     end
     for _, w in ipairs(O.watched) do

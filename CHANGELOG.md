@@ -9,6 +9,7 @@
 
 ## Core 0.12.1
 
+- **Controller buttons** switch in the General tab: off, Improved Forever leaves the controller's buttons to the game (the wheels' R3 combos, the actions put on buttons, Square shooting the wand, the touchpad corners). The modules' windows and the mouse and keyboard presses work as before.
 - The short messages in the options window ("Notification" line) sit on a dark plate under the buttons legend and are a bit bigger, so they are readable.
 
 ## Core 0.12.0

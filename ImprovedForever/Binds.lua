@@ -367,6 +367,14 @@ function B.InGame()
     return manager:IsOnlyCoreBindingSetActive() and true or false
 end
 
+-- The master switch (General tab): off, none of our bindings on the controller's buttons are
+-- applied (the wheels' R3 combos, the actions put on presses, Square shoots the wand, the
+-- touchpad corners), so the pad keeps the game's own. The modules' windows and the keyboard
+-- and mouse presses are untouched.
+function B.PadOverrides()
+    return not (IF.db and IF.db.padOverrides == false)
+end
+
 -- The focus moved: every world binding re-applied (each one checks B.InGame)
 function B.FocusChanged()
     if IF.InCombat() or not IF.db then return end

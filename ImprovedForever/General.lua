@@ -6,6 +6,16 @@ local Item, OnOff = IF.SettingsItem, IF.SettingsOnOff
 
 local ITEMS = {
     Item({
+        key = "padOverrides", group = "gamepad", label = "Controller buttons",
+        tip = "On: Improved Forever's actions on the controller work (the wheels' R3 combos, the actions put on "
+            .. "buttons in the Bindings tab, Square shooting the wand, the touchpad corners). Off: the "
+            .. "buttons stay the game's own, and the modules (Immersion, Fishing, Wiki...) still work with the "
+            .. "mouse and keyboard.",
+    }, OnOff(function() return IF.Binds.PadOverrides() end, function(on)
+        IF.db.padOverrides = on
+        if IF.Binds.FocusChanged then IF.Binds.FocusChanged() end
+    end, "Controller buttons")),
+    Item({
         key = "wandShoot", group = "gamepad", label = "Square shoots the wand",
         tip = "With a wand in your ranged slot, Square on a living enemy shoots it instead of swinging the "
             .. "melee weapon. L2 / R2 + Square stay the crossbar's; on a corpse, an NPC or an object Square is "

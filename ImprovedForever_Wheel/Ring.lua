@@ -1460,7 +1460,7 @@ function IF.ApplyRingBindings()
     ClearOverrideBindings(trigger)
     -- Only while the game has the gamepad's focus (Binds.lua): a window
     -- holding it keeps R3 for itself
-    if IF.Binds.InGame() then
+    if IF.Binds.InGame() and IF.Binds.PadOverrides() then
         for _, modifier in ipairs(MODIFIERS) do
             if Takes(modifier) then
                 SetOverrideBindingClick(trigger, true, modifier .. KEY, trigger:GetName(), modifier .. KEY)

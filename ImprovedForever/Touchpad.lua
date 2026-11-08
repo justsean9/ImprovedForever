@@ -510,7 +510,7 @@ function touch.Apply()
     -- pad's release closes it)
     local free = not WindowsShown() or UnitAffectingCombat("player") or touch.DoubleOpen()
     local inGame = (IF.Binds.InGame() and free) or (IF.PeekMap and IF.PeekMap.IsPeeking())
-    local ours = settings.enabled ~= false and IF.PadStyle() == "Shapes"
+    local ours = settings.enabled ~= false and IF.PadStyle() == "Shapes" and IF.Binds.PadOverrides()
     if ours and not panelOpen and inGame then
         for _, modifier in ipairs(MODIFIERS) do
             SetOverrideBindingClick(click, true, modifier .. KEY, click:GetName(), "LeftButton")
