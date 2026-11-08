@@ -9,6 +9,7 @@
 
 ## Core 0.12.1
 
+- **Square shoots the wand** is off until you turn it on (General tab, or `/if wandshoot`). It was on for everyone with a wand and took Square from players who never asked for it (the melee swing or the loot press became a wand shot).
 - **Controller buttons** switch in the General tab: off, Improved Forever leaves the controller's buttons to the game (the wheels' R3 combos, the actions put on buttons, Square shooting the wand, the touchpad corners). The modules' windows and the mouse and keyboard presses work as before.
 - The short messages in the options window ("Notification" line) sit on a dark plate under the buttons legend and are a bit bigger, so they are readable.
 

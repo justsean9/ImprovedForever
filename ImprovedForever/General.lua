@@ -19,8 +19,8 @@ local ITEMS = {
         key = "wandShoot", group = "gamepad", label = "Square shoots the wand",
         tip = "With a wand in your ranged slot, Square on a living enemy shoots it instead of swinging the "
             .. "melee weapon. L2 / R2 + Square stay the crossbar's; on a corpse, an NPC or an object Square is "
-            .. "the game's own Interact. A Square override set in the Bindings tab wins over it.",
-    }, OnOff(function() return IF.db.wandShoot ~= false end, function(on)
+            .. "the game's own Interact. A Square override set in the Bindings tab wins over it. Off by default.",
+    }, OnOff(function() return IF.db.wandShoot == true end, function(on)
         IF.db.wandShoot = on
         IF.Override.Apply()
     end, "Square shoots the wand")),

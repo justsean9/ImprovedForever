@@ -2,8 +2,9 @@
 -- the melee weapon. With a wand in the ranged slot it shoots instead; on
 -- anything else it stays the game's own press (a click on its button, so
 -- talking, looting... go on as before). Override.lua binds the macro below
--- on PAD3 like any override of the Bindings tab. /if wandshoot turns it
--- off; IF.db.wandShoot = false.
+-- on PAD3 like any override of the Bindings tab. Off until the player turns it
+-- on (General tab, or /if wandshoot; IF.db.wandShoot = true): on by default it
+-- took Square from players who never asked for it.
 local _, IF = ...
 
 local W = {}
@@ -49,7 +50,7 @@ end
 -- Shoot off. The second: what each layer with L2 / R2 held runs, the game's
 -- button of that bar (R2 is no modifier, the key comes the same).
 function W.Macro()
-    if IF.db.wandShoot == false or not Wielding() then return nil end
+    if IF.db.wandShoot ~= true or not Wielding() then return nil end
     local name = ShootName()
     if not (name and GameButton("")) then return nil end
     local layers = {}
@@ -87,7 +88,7 @@ frame:RegisterEvent("SPELLS_CHANGED")
 frame:SetScript("OnEvent", function() IF.Override.Apply() end)
 
 IF.AddCommand("wandshoot", function()
-    IF.db.wandShoot = IF.db.wandShoot == false
+    IF.db.wandShoot = IF.db.wandShoot ~= true
     IF.Override.Apply()
-    IF.Print("Square shoots the wand: " .. (IF.db.wandShoot == false and "off" or "on"))
+    IF.Print("Square shoots the wand: " .. (IF.db.wandShoot == true and "on" or "off"))
 end, ": Square shoots your wand instead of a melee swing")
