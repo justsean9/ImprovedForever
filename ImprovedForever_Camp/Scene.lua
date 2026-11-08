@@ -390,6 +390,12 @@ end
 -- width, each row centred on the frame; how long it stays: its words in,
 -- then a while to read)
 local WORDS_W, READ = 0.42, 3.5
+-- (the lines' pace, the "Text speed" setting: each word's beat, how long a line is read, how
+-- long it stays all scale with it)
+local PACE = { slow = 1.8, normal = 1, fast = 0.6 }
+local function Pace()
+    return PACE[IF.Camp.Settings().textSpeed] or 1
+end
 local function SetLine(text)
     local list = {}
     for w in (text or ""):gmatch("%S+") do list[#list + 1] = w end
@@ -423,7 +429,8 @@ local function SetLine(text)
         end
     end
     words.count = #list
-    words.time = math.max(WORDS_EVERY, #list * WORD_EVERY + WORD_FADE + READ)
+    local k = Pace()
+    words.time = math.max(WORDS_EVERY * k, #list * WORD_EVERY * k + WORD_FADE + READ * k)
 end
 
 -- (over the bottom bar on the right: the countdown)
@@ -863,7 +870,7 @@ local function StepWords(dt)
         return
     end
     wordAt = wordAt + dt
-    if wordAt >= (words.time or WORDS_EVERY) and wordIndex < #wordList then
+    if wordAt >= (words.time or WORDS_EVERY * Pace()) and wordIndex < #wordList then
         wordAt = 0
         wordIndex = wordIndex + 1
         SetLine(wordList[wordIndex])
@@ -871,9 +878,9 @@ local function StepWords(dt)
     -- (word by word in; the line out together over its last second, the
     -- last line held)
     for i = 1, words.count or 0 do
-        wordStrings[i]:SetAlpha(Smooth((wordAt - (i - 1) * WORD_EVERY) / WORD_FADE))
+        wordStrings[i]:SetAlpha(Smooth((wordAt - (i - 1) * WORD_EVERY * Pace()) / WORD_FADE))
     end
-    local a = wordIndex < #wordList and Smooth((words.time or WORDS_EVERY) - wordAt) or 1
+    local a = wordIndex < #wordList and Smooth((words.time or WORDS_EVERY * Pace()) - wordAt) or 1
     -- (dipping with the black; moved while it's black)
     words:SetAlpha(a * (1 - black:GetAlpha()))
     words:ClearAllPoints()

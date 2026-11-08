@@ -1,5 +1,9 @@
 # Changelog
 
+## Camp 0.1.1
+
+- **Text speed** setting (Slow, Normal, Fast) for the scene's lines: how fast the words come and how long each line stays.
+
 ## Camp 0.1.0
 
 - Sitting by a campfire is a cutscene: the HUD steps away, black bars come in and the camera cuts between shots round you.

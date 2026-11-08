@@ -14,6 +14,7 @@ local DEFAULTS = {
     scene = true,   -- sitting by a campfire: the cutscene (Scene.lua)
     recap = true,   -- in it, your day told back from the Journal module's diary (else what the camp's about)
     logout = true,  -- logging out or quitting (the game's countdown): the same scene, the camp breaking up
+    textSpeed = "normal", -- the scene's lines: "slow", "normal" or "fast"
     chat = true,    -- in it, what's said and whispered near you as subtitles, Enter to talk
 }
 

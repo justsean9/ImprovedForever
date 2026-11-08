@@ -10,6 +10,8 @@ local function Toggle(key, label)
     return OnOff(function() return C.Settings()[key] end, function(on) C.Settings()[key] = on end, label)
 end
 
+local SPEEDS = { slow = "Slow", normal = "Normal", fast = "Fast" }
+
 local ITEMS = {
     Item({
         key = "scene", group = "scene", label = "Campfire scene",
@@ -35,6 +37,18 @@ local ITEMS = {
         tip = "In the scene, in the bottom bar: what's said and whispered near you as subtitles. Enter: a "
             .. "line to talk in (say, or /p, /g, /w name...), Enter sends, Esc drops it.",
     }, Toggle("chat", "Subtitles")),
+    Item({
+        key = "textSpeed", group = "scene", label = "Text speed",
+        tip = "How fast the scene's lines come, word by word, and how long each stays: Slow, Normal or Fast.",
+        value = function() return C.Settings().textSpeed end,
+        text = function() return SPEEDS[C.Settings().textSpeed] or SPEEDS.normal end,
+        options = function()
+            local list = {}
+            for _, key in ipairs({ "slow", "normal", "fast" }) do list[#list + 1] = { action = key, name = SPEEDS[key] } end
+            return list
+        end,
+        choose = function(action) C.Settings().textSpeed = action end,
+    }),
     Item({
         key = "test", group = "try", label = "Try the scene",
         tip = "The scene without a fire: a short countdown, then every camp object's benefits. Again, or a "
