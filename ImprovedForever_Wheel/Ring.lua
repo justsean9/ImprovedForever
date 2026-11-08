@@ -61,6 +61,21 @@ ring:SetPoint("CENTER", UIParent, "CENTER", 312, 10)
 ring:SetFrameStrata("DIALOG")
 ring:Hide()
 
+-- The wheel's size, the "Wheel size" setting (percent): a secure frame, so out of combat only,
+-- else once it ends. An anchor's offset counts in the frame's own scale, so it is divided.
+local scalePending = false
+function IF.ApplyRingScale()
+    if IF.InCombat() then
+        scalePending = true
+        return
+    end
+    scalePending = false
+    local k = math.max(0.5, math.min(1.5, ((IF.db and tonumber(IF.db.ringScale)) or 100) / 100))
+    ring:SetScale(k)
+    ring:ClearAllPoints()
+    ring:SetPoint("CENTER", UIParent, "CENTER", 312 / k, 10 / k)
+end
+
 local function SetCVarSafe(name, value)
     local setter = (C_CVar and C_CVar.SetCVar) or SetCVar
     if not setter then return false end
@@ -1472,6 +1487,7 @@ end
 IF.OnLogin(function()
     Rebuild()
     IF.ApplyRingBindings()
+    IF.ApplyRingScale()
 end)
 
 local events = CreateFrame("Frame")
@@ -1496,6 +1512,7 @@ events:SetScript("OnEvent", function(_, event, name)
         end
     elseif event == "PLAYER_REGEN_ENABLED" then
         RestoreAxisCVar()
+        if scalePending then IF.ApplyRingScale() end
         if bindingsPending then
             IF.ApplyRingBindings()
         end

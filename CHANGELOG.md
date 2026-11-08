@@ -55,6 +55,11 @@
 - Recent loot waits for the end of combat to refresh.
 - Double-tap the touchpad corners works on the recent loot tiles.
 
+## Wheel 0.11.0
+
+- **Wheel size** slider (50 to 150%) in a new Wheel options tab, for those who find the wheel too big. Changes out of combat.
+- The wheels' R3 combos follow the core's new Controller buttons switch (off: R3 stays the game's).
+
 ## Wheel 0.10.0
 
 - Recent loot tiles are marked with badges for upgrades, quest items, recipes, auction items, rarities and collectibles.

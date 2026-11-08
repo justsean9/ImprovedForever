@@ -21,3 +21,4 @@ BindPanel.lua
 UnitFrames.lua
 RecentSlot.lua
 WheelEditor.lua
+WheelOptions.lua
