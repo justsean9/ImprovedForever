@@ -54,8 +54,10 @@ local function Container()
     end
     Group("debuffs", "HARMFUL|PLAYER")
     Group("buffs", "HELPFUL")
-    -- (the row's left on the rule's left, under the cast bar)
-    c:SetPoint("TOPLEFT", TH.castBox, "BOTTOMLEFT", 0, -GAP_UNDER)
+    -- (centred under the cast bar, which hangs under the race / class line: the width follows the
+    -- icons, see Width below)
+    c:SetSize(SIZE, SIZE)
+    c:SetPoint("TOP", TH.castBox, "BOTTOM", 0, -GAP_UNDER)
     c:Hide()
     container = c
     return c
@@ -67,10 +69,35 @@ local function Wanted()
     return s and s.targetAuras ~= false and s.target and TH.look:IsShown() and UnitExists("target") or false
 end
 
+-- How many auras the target has now of a filter (out of a fight: in one their details are secret)
+local function Count(filter)
+    local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
+    if not get then return 0 end
+    local n = 0
+    for i = 1, MAX_EACH do
+        local ok, data = pcall(get, "target", i, filter)
+        if not ok or type(data) ~= "table" then break end
+        n = n + 1
+    end
+    return n
+end
+
+-- The row as wide as its icons, so centring it centres them: counted out of a fight, kept in one
+local width = SIZE
+local function Width(c)
+    if not IF.InCombat() then
+        local d, b = Count("HARMFUL|PLAYER"), Count("HELPFUL")
+        local n = d + b
+        width = n > 0 and (n * SIZE + (n - 1) * GAP + (d > 0 and b > 0 and GROUP_GAP - GAP or 0) + 4) or SIZE
+    end
+    if c:GetWidth() ~= width then c:SetSize(width, SIZE) end
+end
+
 local function Update()
     local on = Wanted()
     local c = (on or container) and Container()
     if not c then return end
+    if on then Width(c) end
     if c:IsShown() ~= on then
         c:SetShown(on)
         pcall(c.SetEnabled, c, on)
