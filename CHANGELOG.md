@@ -71,7 +71,7 @@
 
 ## Wheel 0.11.1
 
-- The wheel's size is set in the Wheels tab (a button each side of the size under the wheel), not in a Wheel options tab of its own.
+- The wheel's size is set in a "Settings" entry at the bottom of the Wheels list (D-pad left / right, or the - and + buttons with the mouse), not in a Wheel options tab of its own.
 - The wheels' text (the radial menus, the editor) uses the game's own font on a Russian, Korean or Chinese client, so item and spell names show their letters instead of empty squares.
 
 ## Wheel 0.11.0
