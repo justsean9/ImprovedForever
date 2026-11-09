@@ -1,5 +1,19 @@
 # Changelog
 
+## Core 0.14.2
+
+- A striped texture for the predictions on Immersion's health and power lines.
+
+## Immersion 0.8.0
+
+- **Nameplates over friendly NPCs**, in the same look as the others: the name in gold, the NPC's job under it (`<Warrior Trainer>`; a player's guild), and the game's own tiny names over units too far for a plate turned off, so the two looks no longer mix. Settings: "Friendly NPC nameplates" and "Hide the game's far names" (both on).
+- **Health line off for friendly NPCs** (on): the name alone, with the level circle gone too. Mobs you can attack keep theirs. Players have their own switch (off).
+- **Player names and health lines in their class colour**, with a switch to turn it off; a friend's level circle is plain gold, no longer coloured by difficulty.
+- A nameplate fades out behind an object, and one far away stays ours, a little smaller. Plates sit closer to the head, the name is a size 17, with more room over the health line.
+- **Recent loot is on by default** and no longer called an experiment; an item a quest in your log asks for gets a gold "?" tile.
+- Your health and power lines along the bottom edge: the heals coming and the power a spell will take show as striped bands, what you just lost stays as a pale trail, a bright cap marks where each stops.
+- The target's buffs no longer stop with "attempt to compare a secret number value".
+
 ## Immersion 0.7.0
 
 - **Drop a spell, item or macro on a keyboard bar tile** to put it on that key; drag it off to free the key (what was there comes up on the cursor). The tile shows the action's tooltip, its cast ring, cooldown and item buff. Over the bar the layer stays the plain one: Shift is the game's pick-up key, not a layer.
