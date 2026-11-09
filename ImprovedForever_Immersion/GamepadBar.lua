@@ -895,10 +895,16 @@ local function CastFill(b, native, interact)
     -- the casting bar's)
     local PC = IN.PlayerCast
     local color = PC and PC.IconColor and PC.IconColor(texture)
-    DrawRing(b.ring, channel and (1 - f) or f, color or (channel and CHANNEL_COLOR or CAST_COLOR))
-    b.ring:SetAlpha(1)
+    color = color or (channel and CHANNEL_COLOR or CAST_COLOR)
+    DrawRing(b.ring, channel and (1 - f) or f, color)
+    -- (pulsing as a cooldown does: the ring's wave and the diamond's flash on each whole
+    -- second of the cast)
+    local since = (GetTime() * 1000 - startMs) / 1000 % 1
+    local wave = 0.5 + 0.5 * math.cos(2 * math.pi * since)
+    b.ring:SetAlpha(BEAT_LOW + (1 - BEAT_LOW) * wave)
     b.ring:Show()
-    b.flashFill:SetAlpha(0)
+    b.flashFill:SetVertexColor(color[1], color[2], color[3], 1)
+    b.flashFill:SetAlpha(BEAT_FLASH * math.max(0, 1 - since / BEAT))
     b.casting = true
 end
 
