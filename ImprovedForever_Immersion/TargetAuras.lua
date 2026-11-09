@@ -9,7 +9,7 @@ local TA = {}
 IN.TargetAuras = TA
 
 local SIZE, MAX_EACH, GAP, GROUP_GAP = 22, 8, 3, 12
-local GAP_UNDER = 22        -- (under the cast bar: room for its text)
+local GAP_UNDER = 2         -- (under the race / class line: the cast is on the diamond now, its text above it)
 
 local function Style(b)
     b:SetSize(SIZE, SIZE)

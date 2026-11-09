@@ -340,13 +340,60 @@ cast.bg = castBox:CreateTexture(nil, "BACKGROUND")
 cast.bg:SetAllPoints()
 cast.bg:SetAtlas(FILL.empty)
 cast.text = castBox:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-cast.text:SetPoint("TOP", castBox, "BOTTOM", 0, -2)
--- (the spell's icon in a diamond, as the target's avatar: a small tile of the header's own)
-cast.tile = HS.Tile(castBox, 11)
-cast.tile:ClearAllPoints()
-cast.tile:SetPoint("CENTER", castBox, "LEFT", -4 - cast.tile.across / 2, 0)
-cast.tile.icon:SetSize(cast.tile.across * 0.94, cast.tile.across * 0.94)
-cast.icon = cast.tile.icon
+cast.text:SetPoint("BOTTOM", tile, "TOP", 0, 2)     -- (over the diamond: the buffs sit close under the race / class line)
+-- The cast as the diamond's own edges (as the player's cast bar, PlayerCast.lua): the spell's icon in the
+-- avatar's diamond, its border lit from the top and bottom points to the sides as the cast goes. The long
+-- bar under the name is gone (kept only as the cast's value and an anchor for the name's text and the auras).
+cast:SetAlpha(0)
+cast.bg:Hide()
+cast.icon = tile:CreateTexture(nil, "OVERLAY", nil, 1)
+cast.icon:SetPoint("CENTER")
+cast.icon:SetSize(tile.across * 0.94, tile.across * 0.94)
+cast.icon:AddMaskTexture(tile.mask)
+cast.icon:Hide()
+local arcs = CreateFrame("Frame", nil, look)
+arcs:SetSize(1, 1)
+arcs:SetPoint("CENTER", tile, "CENTER")
+arcs:SetFrameLevel(tile:GetFrameLevel() + 10)
+local arcLines, arcGlows = {}, {}
+for i = 1, 4 do
+    local glow = arcs:CreateLine(nil, "OVERLAY", nil, 1)
+    glow:SetThickness(4)
+    glow:SetTexture("Interface\\Buttons\\WHITE8x8")
+    glow:SetBlendMode("ADD")
+    local edge = arcs:CreateLine(nil, "OVERLAY", nil, 2)
+    edge:SetThickness(2.5)
+    edge:SetTexture("Interface\\Buttons\\WHITE8x8")
+    edge:SetBlendMode("ADD")
+    arcLines[i], arcGlows[i] = edge, glow
+end
+local CAST_COLORS = { cast = { 1, 0.8, 0.2 }, channel = { 0.3, 0.9, 0.4 }, shield = { 0.6, 0.6, 0.6 },
+    interrupted = { 1, 0.2, 0.2 } }
+local QUARTERS = { { -1, 1 }, { 1, 1 }, { -1, -1 }, { 1, -1 } }
+-- (amount 0 to 1 of the way along each edge, from the top and bottom points to the sides)
+local function Arcs(amount, color)
+    local r = tile.across / 2 * 0.98
+    for i, q in ipairs(QUARTERS) do
+        local edge, glow = arcLines[i], arcGlows[i]
+        if amount <= 0 then
+            edge:Hide()
+            glow:Hide()
+        else
+            local x, y = q[1] * amount, q[2] * (1 - amount)
+            for _, l in ipairs({ edge, glow }) do
+                l:SetStartPoint("CENTER", arcs, 0, q[2] * r)
+                l:SetEndPoint("CENTER", arcs, x * r, y * r)
+                l:Show()
+            end
+            edge:SetVertexColor(color[1], color[2], color[3], 1)
+            glow:SetVertexColor(color[1], color[2], color[3], 0.35)
+        end
+    end
+end
+local function ArcsOff()
+    Arcs(0, CAST_COLORS.cast)
+    cast.icon:Hide()
+end
 -- (the grey of a cast that can't be interrupted, over the fill)
 cast.shield = cast:CreateTexture(nil, "ARTWORK", nil, 1)
 cast.shield:SetAtlas(FILL.shield)
@@ -394,9 +441,12 @@ function cast:Start(kind, text, texture, startMs, endMs, notInterruptible)
     self:SetValue(GetTime() * 1000)
     -- (plain times: an end of our own too, should an event be missed)
     self.endMs = not Secret(endMs) and type(endMs) == "number" and endMs or nil
+    self.startMs = not Secret(startMs) and type(startMs) == "number" and startMs or nil
+    self.color = CAST_COLORS[(notInterruptible == true) and "shield" or kind] or CAST_COLORS.cast
     Try(self.text.SetText, self.text, text)
     self.text:Show()
     if not Try(self.icon.SetTexture, self.icon, texture) then self.icon:SetTexture(nil) end
+    self.icon:Show()
     self.box:Show()
 end
 
@@ -410,6 +460,8 @@ function cast:Interrupted()
     self:SetValue(1)
     self.text:SetText(INTERRUPTED or "Interrupted")
     self.holdUntil = GetTime() + INTERRUPTED_HOLD
+    self.color = CAST_COLORS.interrupted
+    Arcs(1, self.color)
     self.box:Show()
 end
 
@@ -417,6 +469,7 @@ function cast:Stop()
     self.kind = nil
     self.holdUntil = nil
     self.box:Hide()
+    ArcsOff()
 end
 
 -- The cast the target has now shown, or none
@@ -434,6 +487,13 @@ cast:SetScript("OnUpdate", function(self)
     local now = GetTime()
     if self.kind then
         self:SetValue(now * 1000)
+        -- (plain times: the edges as far as the cast has gone (a channel's draining); secret ones: all lit)
+        local amount = 1
+        if self.startMs and self.endMs and self.endMs > self.startMs then
+            amount = math.min(1, math.max(0, (now * 1000 - self.startMs) / (self.endMs - self.startMs)))
+            if self.kind == "channel" then amount = 1 - amount end
+        end
+        Arcs(amount, self.color or CAST_COLORS.cast)
         if self.endMs and now * 1000 > self.endMs + 300 then self:Check() end
     elseif self.holdUntil and now > self.holdUntil then
         self:Stop()
@@ -605,6 +665,20 @@ local function Draw(elapsed)
     castBox:ClearAllPoints()
     castBox:SetPoint("TOP", calm < 0.5 and quest or name, "BOTTOM", 0, -CAST_GAP)
 end
+
+-- /if targetcast [channel|shield|interrupt]: a made-up cast on the target header (have a target), 12 seconds
+IF.AddCommand("targetcast", function(args)
+    local kind = args and args[1] or "cast"
+    local now = GetTime() * 1000
+    if kind == "interrupt" then
+        cast:Start("cast", "Frostbolt", 135846, now, now + 1500, false)
+        C_Timer.After(1, function() cast:Interrupted() end)
+    else
+        cast:Start(kind == "channel" and "channel" or "cast", kind == "channel" and "Arcane Missiles" or "Fireball",
+            kind == "channel" and 136096 or 135812, now, now + 12000, kind == "shield")
+    end
+    C_Timer.After(12, function() cast:Stop() end)
+end, "[channel|shield|interrupt]: a made-up cast on the target header (have a target), 12 seconds")
 
 -- The tour's stand-in target (Onboarding.lua): "friend", "enemy" or nil to
 -- end it

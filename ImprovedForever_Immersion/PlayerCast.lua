@@ -125,9 +125,9 @@ for i = 1, 4 * ARC_STEPS do
     arcLines[i], arcGlows[i] = edge, glow
 end
 
+-- (the cast bar is always a diamond, whatever the action bar's style: its tile is the header's diamond tile)
 local function Style()
-    local GB = IN.GamepadBar
-    return GB and GB.Style and GB.Style() or "diamond"
+    return "diamond"
 end
 
 -- (one quarter's path, from the top (or bottom) to a side, as points in
@@ -195,18 +195,24 @@ end
 local tile, standIn
 local function Tile()
     if tile ~= nil then return tile or nil end
-    local GB = IN.GamepadBar
-    if not (GB and GB.Tile and GB.Dims and GB.Mirror and GB.StandIn) then return nil end
-    local ok, t = pcall(GB.Tile, hub, line, GB.Dims(TILE, 14), { 0, 0 })
+    local HS = IN.HeaderSlot
+    if not (HS and HS.Tile) then return nil end
+    local ok, t = pcall(HS.Tile, hub, TILE)
     tile = ok and t or false
     if tile then
         tile:EnableMouse(false)
         tile:SetFrameLevel(line:GetFrameLevel() + 5)
         arcs:SetFrameLevel(line:GetFrameLevel() + 20)
-        if type(tile.ring) == "table" and type(tile.ring.r) == "number" then
-            radius = tile.ring.r
-            PlaceHalves()
-        end
+        tile.icon:SetSize(tile.across * 0.94, tile.across * 0.94)
+        -- (a flash over the icon, in the diamond's mask: the pulse of the line's colour)
+        tile.flashFill = tile:CreateTexture(nil, "OVERLAY", nil, 1)
+        tile.flashFill:SetColorTexture(1, 1, 1, 1)
+        tile.flashFill:SetPoint("CENTER")
+        tile.flashFill:SetSize(tile.across * 0.94, tile.across * 0.94)
+        tile.flashFill:AddMaskTexture(tile.mask)
+        tile.flashFill:SetAlpha(0)
+        radius = tile.across / 2 * 0.9
+        PlaceHalves()
     end
     return tile or nil
 end
@@ -232,7 +238,8 @@ end
 local function Mirror()
     local t = Tile()
     if not (t and standIn) then return end
-    pcall(IN.GamepadBar.Mirror, t, standIn)
+    local texture = standIn.icon and standIn.icon.texture
+    if not Try(t.icon.SetTexture, t.icon, texture) then t.icon:SetTexture(nil) end
     Pulse(t)
 end
 
@@ -338,11 +345,7 @@ local function Start(kind, text, startMs, endMs, notInterruptible, spell)
         right:SetReverseFill(false)
     end
     -- (the tile's border as its style has it now)
-    local t = Tile()
-    if t and type(t.ring) == "table" and type(t.ring.r) == "number" and t.ring.r ~= radius then
-        radius = t.ring.r
-        PlaceHalves()
-    end
+    Tile()
     -- (plain times: the line's halves take their share of the run (a cast
     -- the part after the edges, a channel's time gone the part before
     -- them); secret ones: the whole cast, the edges lit throughout)
