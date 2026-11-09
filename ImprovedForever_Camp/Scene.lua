@@ -454,8 +454,10 @@ actions:SetSize(240, 30)
 actions:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -30, -34)
 actions:Hide()
 -- (flat, dark, thin gold rule, the scene's own face: lit when the mouse is over)
-local function ActionButton(text, run)
-    local b = CreateFrame("Button", nil, actions)
+-- (secure: its press is a secure click on a game button; ForceQuit is protected, so a
+-- call from our code is ADDON_ACTION_BLOCKED)
+local function ActionButton(text, run, secure)
+    local b = CreateFrame("Button", nil, actions, secure and "SecureActionButtonTemplate" or nil)
     b:SetSize(112, 30)
     local fill = b:CreateTexture(nil, "BACKGROUND")
     fill:SetAllPoints()
@@ -485,7 +487,15 @@ local function ActionButton(text, run)
     Light(false)
     b:SetScript("OnEnter", function() Light(true) end)
     b:SetScript("OnLeave", function() Light(false) end)
-    b:SetScript("OnClick", function() pcall(run) end)
+    if secure then
+        -- (the modern secure button acts on the key DOWN while the cvar says so, and ignores an
+        -- up-only registration: take both, act on the up like our other buttons)
+        b:RegisterForClicks("AnyUp", "AnyDown")
+        b:SetAttribute("useOnKeyDown", false)
+        b:SetAttribute("type", "click")
+    else
+        b:SetScript("OnClick", function() pcall(run) end)
+    end
     return b
 end
 local cancelButton = ActionButton("Cancel", function()
@@ -493,7 +503,7 @@ local cancelButton = ActionButton("Cancel", function()
     C.Leave() -- (the scene out at once; the game's event may come late or not at all)
 end)
 cancelButton:SetPoint("RIGHT")
-local exitButton = ActionButton("Exit now", function() ForceQuit() end)
+local exitButton = ActionButton("Exit now", nil, true)
 exitButton:SetPoint("RIGHT", cancelButton, "LEFT", -8, 0)
 
 local title = Text(card, 18, 1, 0.82, 0.45)
@@ -899,12 +909,33 @@ local function StepTexts(dt)
     StepItems(dt)
 end
 
+-- (aimed at the game's own quit popup button: its OnAccept does the quitting, untainted;
+-- out of combat only, a secure button's attributes are locked in a fight)
+local function AimExit()
+    if InCombatLockdown() then return end
+    local target
+    for i = 1, 4 do
+        local f = rawget(_G, "StaticPopup" .. i)
+        if f and f:IsShown() and f.which == LOGOUT_POPUP[true] then
+            target = f.button1 or rawget(_G, "StaticPopup" .. i .. "Button1")
+        end
+    end
+    exitButton:SetAttribute("clickbutton", target)
+end
+exitButton:HookScript("PreClick", function()
+    AimExit()
+    if not exitButton:GetAttribute("clickbutton") then print("|cffff8800Camp: the game's quit popup button was not found.|r") end
+end)
+
 -- (the card's words: the fire's, or the camp breaking up)
 local function CardWords()
     local pad = IF.Input and IF.Input.Pad and IF.Input.Pad()
     hint:SetShown(logout ~= nil and pad and true or false)
     actions:SetShown(logout ~= nil and not pad)
-    exitButton:SetShown(logout ~= nil and logout.quit and true or false)
+    if not InCombatLockdown() then
+        exitButton:SetShown(logout ~= nil and logout.quit and true or false)
+        AimExit()
+    end
     if logout then
         title:SetText(logout.quit and "Exiting the game" or "Logging out")
         label:SetText("Leaving in")
