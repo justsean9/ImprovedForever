@@ -210,12 +210,12 @@ local ITEMS = {
             .. "of the game's breath bar. Other timers (fatigue) stay the game's.",
     }, Toggle("breath", "Breath", function() IN.Breath.Apply() end)),
     Item({
-        key = "recentLoot", group = "bottom", section = "Player frame", label = "Recent loot (experiment)",
-        tip = "An experiment. Your last four loots that matter as small tiles beside the bags: upgrades "
+        key = "recentLoot", group = "bottom", section = "Player frame", label = "Recent loot",
+        tip = "Your last four loots that matter as small tiles beside the bags: upgrades "
             .. "(green arrow), quest starters (gold !), recipes for your professions, finds worth more at "
             .. "the auction house, rares, mounts, pets and toys to learn, and bags that open. The rest "
             .. "flies to the bags' tile. Mouse over one for its tooltip.",
-    }, Toggle("recentLoot", "Recent loot (experiment)", function() IN.RecentLoot.Apply() end)),
+    }, Toggle("recentLoot", "Recent loot", function() IN.RecentLoot.Apply() end)),
     Item({
         key = "pad", group = "bottom", section = "Action bar", label = "Action bar",
         tip = "The gamepad bar as spell tiles bottom right. Off, the game's own gamepad bar shows.",

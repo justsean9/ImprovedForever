@@ -419,7 +419,7 @@ end)
 -- The settings: a switch for each piece, as the tab shows them
 Example("switches", function(f)
     local list = { { "Player frame", true }, { "Target header", true }, { "Party cards", true },
-        { "Cast bar", true }, { "Recent loot (experiment)", false } }
+        { "Cast bar", true }, { "Recent loot", true } }
     for i, r in ipairs(list) do
         local y = -34 - (i - 1) * 34
         Label(f, r[1], 14, 1, 1, 1):SetPoint("TOPLEFT", 110, y)
