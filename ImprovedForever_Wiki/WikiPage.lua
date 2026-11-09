@@ -12,8 +12,20 @@
 -- Never in combat.
 local IF = ImprovedForever
 
-local A = IF.Auction
-local BY = IF.AuctionBuy
+-- (the Auction module's, looked up when used: it can come after this file)
+local function Auction() return IF.Auction end
+local function AuctionBuy() return IF.AuctionBuy end
+
+-- A sum of copper as gold, silver and copper coins: the Auction module's way, else the game's
+-- (C_CurrencyInfo's on Forever: its GetCoinTextureString global is gone)
+local function Money(copper)
+    local A = Auction()
+    if A and A.Money then return A.Money(copper) end
+    local coins = (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString) or _G.GetCoinTextureString
+        or _G.GetMoneyString
+    if coins then return coins(copper) end
+    return tostring(copper) .. "c"
+end
 local LB = IF.Wiki
 local BK = IF.Book
 
@@ -298,7 +310,8 @@ local function Said(p)
     end
 
     -- Its worth
-    local usual = A and A.MarketPrice(p.id, A.Settings().chartDays)
+    local A = Auction()
+    local usual = A and A.MarketPrice and A.MarketPrice(p.id, A.Settings().chartDays)
     local sell = select(11, LB.ItemInfo(p.id))
     if usual then
         table.insert(said.worth, "At the auction house it usually fetches " .. Name(Coins(usual))
@@ -763,7 +776,7 @@ function Page:heading()
             .. ((subType or itemType) and (" " .. (subType or itemType)) or ""),
             level and level > 1 and ("Item Level " .. level), need and need > 1 and ("Requires Level " .. need) }),
         owned = LB.Join({ carried > 0 and ("You carry " .. carried) or "You carry none",
-            sell and sell > 0 and ("sells for " .. (A and A.Money(sell) or GetCoinTextureString(sell))) }),
+            sell and sell > 0 and ("sells for " .. Money(sell)) }),
         chapter = chapter,
     }
 end
@@ -877,6 +890,7 @@ local book = BK.New({
     -- (Triangle: the search's page, WikiSearch.lua)
     search = { text = "Search", open = function() LB.Search() end },
     onHide = function()
+        local BY = AuctionBuy()
         if LB.origin == "auction" and BY and BY.Render then BY.Render() end
     end,
 })
