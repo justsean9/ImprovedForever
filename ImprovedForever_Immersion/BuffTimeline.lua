@@ -311,30 +311,6 @@ end
 local GROUP_GAP = 12            -- (between the buffs and the debuffs)
 local DEBUFF_MAX = 8
 
--- A buff's or debuff's tooltip over the mouse: the game's container hands its buttons no tooltip, so the
--- aura is found by its icon among yours (nothing in a fight, when the auras' details are secret)
-local function AuraTip(hit)
-    local self = hit:GetParent()
-    local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
-    if not (get and self.tipIcon) then return end
-    local texture = self.tipIcon:GetTexture()
-    if texture == nil or Secret(texture) then return end
-    local filter = self.harmful and "HARMFUL" or "HELPFUL"
-    for i = 1, 40 do
-        local ok, data = pcall(get, "player", i, filter)
-        if not ok or type(data) ~= "table" then break end
-        if not Secret(data.icon) and data.icon == texture then
-            GameTooltip:SetOwner(hit, "ANCHOR_TOP")
-            if pcall(GameTooltip.SetUnitAura, GameTooltip, "player", i, filter) then
-                GameTooltip:Show()
-            else
-                GameTooltip:Hide()
-            end
-            return
-        end
-    end
-end
-
 local function StyleButton(b, harmful, size)
     b:SetSize(size, size)
     local icon = b:CreateTexture(nil, "ARTWORK")
@@ -359,19 +335,6 @@ local function StyleButton(b, harmful, size)
             showWhenHarmful = true, showWithoutDispelType = true,
         })
     end
-    -- (the tooltip: a frame of ours over the button takes the mouse, so the game's button is left as it
-    -- is; in a pcall so that it can never stop the button being styled)
-    pcall(function()
-        b.tipIcon, b.harmful = icon, harmful
-        local hit = CreateFrame("Frame", nil, b)
-        hit:SetAllPoints(b)
-        -- (above whatever of ours or the game's lies over the row, which took the mouse first)
-        hit:SetFrameStrata("HIGH")
-        hit:SetFrameLevel(200)
-        hit:EnableMouse(true)
-        hit:SetScript("OnEnter", AuraTip)
-        hit:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    end)
 end
 
 -- (the buffs' lane: after the minion card, to the party's row)
@@ -390,7 +353,9 @@ local function Container()
     if not (AuraContainerSortMethod and AuraContainerSortDirection) then return nil end
     local ok, c = pcall(CreateFrame, "AuraContainer", "ImprovedForeverBuffList", UIParent, "CustomAuraContainerTemplate")
     if not (ok and c) then return nil end
-    c:SetFrameStrata("LOW")
+    -- (high, so the mouse reaches the game's own buttons, which show their own tooltip: at LOW something
+    -- lying over the row took it first)
+    c:SetFrameStrata("HIGH")
     local size = Size()
     local start, stop = BuffLane()
     local fits = math.max(1, math.floor((stop - start - GROUP_GAP + SPACING) / (size + SPACING)))
@@ -509,49 +474,49 @@ end
 local function RealReport()
     local log = { date("%H:%M:%S") .. " buff row report" }
     IF.db.buffReport = log      -- (saved on /reload; cleared by /if bufftest off)
+    -- (a line made of secret values is itself secret and ends the saved list: said as hidden)
     local function Print(text)
+        if Secret(text) then text = "<hidden>" end
         log[#log + 1] = text
         IF.Print(text)
     end
+    local function Safe(fn, ...)
+        local ok, v = pcall(fn, ...)
+        if not ok or Secret(v) then return "<hidden>" end
+        return tostring(v)
+    end
     local c = container
     if not c then return Print("buff row: no container (this client has none, or it was never shown)") end
-    local n = c:GetNumChildren()
-    Print(string.format("buff row: container %s, %d buttons, mouse %s", c:IsShown() and "shown" or "hidden", n,
-        tostring(c:IsMouseEnabled())))
+    Print("buff row: container " .. Safe(c.IsShown, c) .. ", buttons " .. Safe(c.GetNumChildren, c))
     local first
-    for i = 1, n do
+    for i = 1, select("#", c:GetChildren()) do
         local b = select(i, c:GetChildren())
-        if b:IsShown() then
+        if i <= 3 then
             first = first or b
-            local hit = b:GetNumChildren() > 0 and select(1, b:GetChildren())
-            local tex = b.tipIcon and b.tipIcon:GetTexture()
-            Print(string.format("  %d: our tooltip frame %s, mouse %s, icon %s", i, hit and "yes" or "NO",
-                hit and tostring(hit:IsMouseEnabled()) or "-",
-                tex == nil and "none" or (Secret(tex) and "secret" or tostring(tex))))
+            local hit = b.GetNumChildren and b:GetNumChildren() > 0 and select(1, b:GetChildren())
+            Print(string.format("  %d: tooltip frame %s, icon %s, protected %s", i, hit and "yes" or "NO",
+                b.tipIcon and Safe(b.tipIcon.GetTexture, b.tipIcon) or "none",
+                Safe(b.IsProtected, b)))
         end
     end
-    -- (the first shown button's own fields and methods with "aura" or "tip" in them: what it can tell)
     if first then
         local names = {}
         for k in pairs(first) do names[#names + 1] = tostring(k) end
         local mt = getmetatable(first)
         local idx = mt and mt.__index
         if type(idx) == "table" then
-            for k in pairs(idx) do
-                local name = tostring(k):lower()
-                if name:find("aura") or name:find("tip") or name:find("spell") or name:find("unit") then
-                    names[#names + 1] = "m:" .. tostring(k)
-                end
-            end
+            for k in pairs(idx) do names[#names + 1] = "m:" .. tostring(k) end
         end
         table.sort(names)
-        Print("  fields: " .. table.concat(names, ", "))
+        for i = 1, #names, 12 do
+            Print("  members: " .. table.concat(names, ", ", i, math.min(i + 11, #names)))
+        end
     end
     local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
     for i = 1, 5 do
         local ok, d = pcall(get, "player", i, "HELPFUL")
         if not ok or type(d) ~= "table" then break end
-        Print("  aura " .. i .. ": icon " .. tostring(Secret(d.icon) and "secret" or d.icon))
+        Print("  aura " .. i .. ": icon " .. Safe(function() return d.icon end))
     end
 end
 
