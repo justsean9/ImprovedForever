@@ -2,6 +2,7 @@
 
 ## Immersion 0.5.1
 
+- With the keyboard and mouse bar, the menu button's list works: clicking an entry (Character, Spellbook, Talents, Bags...) now opens it; the click was ignored while the game's "Action buttons use key down" was on. The tiles' mouse clicks too.
 - The cast bar can be moved right / up in the Immersion tab (under Cast bar), as the header and the player frame can.
 
 ## Camp 0.1.1
