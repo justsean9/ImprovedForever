@@ -1372,9 +1372,12 @@ local function Row(i)
     r.text:SetPoint("LEFT", 8, 0)
     r.bind = r:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     r.bind:SetPoint("RIGHT", -8, 0)
-    r:SetScript("OnEnter", function(self) self.hl:Show() end)
+    r:SetScript("OnEnter", function(self) self.hl:SetShown(self.available ~= false) end)
     r:SetScript("OnLeave", function(self) self.hl:Hide() end)
-    r:HookScript("PostClick", ClosePopup)
+    r:HookScript("PostClick", function(self)
+        if self.run and self.available ~= false then pcall(self.run) end
+        ClosePopup()
+    end)
     menuRows[i] = r
     return r
 end
@@ -1398,6 +1401,10 @@ local function MenuItems()
     if bags then
         items[#items + 1] = { native = bags, label = _G.BAGSLOTTEXT or "Bags", command = "OPENALLBAGS" }
     end
+    -- (ours: the Improved Forever panel, as /if and the touchpad open it; run after the click)
+    if IF.Menu and IF.Menu.Toggle then
+        items[#items + 1] = { label = "Improved Forever", run = function() IF.Menu.Toggle() end, extra = "/if" }
+    end
     return items
 end
 
@@ -1407,10 +1414,21 @@ local function OpenPopup()
     if #items == 0 then return end
     for i, item in ipairs(items) do
         local r = Row(i)
+        -- (an item of ours has no game button to click: its run goes after the click, PostClick below)
         r:SetAttribute("clickbutton", item.native)
+        r.run = item.run
         r.text:SetText(item.label)
         local key = item.command and GetBindingKey(item.command)
-        r.bind:SetText(key and GetBindingText(key, "KEY_", true) or "")
+        r.bind:SetText(item.extra or (key and GetBindingText(key, "KEY_", true)) or "")
+        -- (greyed and not clickable while the game's own button for it is disabled: Talents before
+        -- their level, the guild without one...)
+        local ok, enabled = true, true
+        if item.native then ok, enabled = pcall(item.native.IsEnabled, item.native) end
+        enabled = not ok or enabled ~= false
+        r:SetEnabled(enabled)
+        r.text:SetTextColor(enabled and 1 or 0.5, enabled and 1 or 0.5, enabled and 1 or 0.5)
+        r.bind:SetAlpha(enabled and 1 or 0.5)
+        r.available = enabled
         r:Show()
     end
     for i = #items + 1, #menuRows do menuRows[i]:Hide() end
