@@ -76,8 +76,25 @@ local function Update()
     end
 end
 
+-- The game's list keeps the earlier target's icons for the unit "target" unless it is handed the unit
+-- again: asked again, and off and on, whenever the target changes
+local function Refresh()
+    local c = container
+    if not c then return end
+    pcall(c.SetEnabled, c, false)
+    pcall(c.SetUnit, c, "target")
+    if c:IsShown() then pcall(c.SetEnabled, c, true) end
+end
+
 function TA.Apply()
     Update()
 end
+
+local events = CreateFrame("Frame")
+events:RegisterEvent("PLAYER_TARGET_CHANGED")
+events:SetScript("OnEvent", function()
+    Update()
+    Refresh()
+end)
 
 IN.Watcher("target auras", 0.2, Update)

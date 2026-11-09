@@ -2,6 +2,7 @@
 
 ## Immersion 0.5.1
 
+- The target's buffs and debuffs under the header are cleared and filled again when you change target (they kept the earlier target's icons).
 - The menu button's list greys out the entries you can't use yet (Talents before their level, a guild you aren't in...), and has an "Improved Forever" entry that opens this panel.
 - The buff row along the bottom shows a buff's or debuff's tooltip when the mouse is over it (out of a fight).
 - With the keyboard and mouse bar, the menu button's list works: clicking an entry (Character, Spellbook, Talents, Bags...) now opens it; the click was ignored while the game's "Action buttons use key down" was on. The tiles' mouse clicks too.
