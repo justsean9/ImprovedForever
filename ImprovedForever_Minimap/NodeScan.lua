@@ -37,9 +37,51 @@ function N.Position()
     return -y, x
 end
 
-function N.Supported()
+local function HasApi()
     return Minimap and Minimap.UpdateMouseoverAtPoint and C_TooltipInfo and C_TooltipInfo.GetMinimapMouseover
         and true or false
+end
+
+-- Forever's update of November 2026 left the hover point where it is: the minimap answers
+-- nothing, wherever it's asked (other addons that read it stopped too). So whether it answers
+-- is checked: at its centre it names you (your own arrow), on any client that works. Asked at
+-- login and each time the labels or alerts are turned on, so a fixed client is seen again.
+N.BROKEN_TEXT = "WoW Forever's latest update stopped addons from reading the minimap, so the labels and "
+    .. "alerts can't work for now. They come back by themselves once the game answers again."
+N.broken = false
+
+-- (true: it answers, false: it doesn't, nil: can't tell now (the minimap hidden))
+function N.Answers()
+    if not HasApi() or not Minimap:IsVisible() then return nil end
+    local x, y = Minimap:GetCenter()
+    if not x then return nil end
+    local e = Minimap:GetEffectiveScale()
+    local soft = Minimap.SetUsingSoftCursor ~= nil
+    if soft then Minimap:SetUsingSoftCursor(true) end
+    local answered = false
+    for dx = -3, 3, 3 do
+        for dy = -3, 3, 3 do
+            if not answered and pcall(Minimap.UpdateMouseoverAtPoint, Minimap, (x + dx) * e, (y + dy) * e) then
+                local data = C_TooltipInfo.GetMinimapMouseover()
+                local lines = data and not Secret(data) and data.lines
+                answered = type(lines) == "table" and #lines > 0
+            end
+        end
+    end
+    Minimap:UpdateMouseoverAtPoint(-10000, -10000)
+    if soft then Minimap:SetUsingSoftCursor(false) end
+    return answered
+end
+
+-- (checked again now: the result kept while it can't be told)
+function N.Check()
+    local answers = N.Answers()
+    if answers ~= nil then N.broken = not answers end
+    return not N.broken
+end
+
+function N.Supported()
+    return HasApi() and not N.broken
 end
 
 ---------------------------------------------------------------------------

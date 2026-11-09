@@ -728,8 +728,18 @@ function MM.ApplyLabels()
 end
 
 function MM.SetLabels(on)
+    if on then N.Check() end
     MM.Settings().labels = on
     MM.ApplyLabels()
+end
+
+-- (said once a session: turned on while the game doesn't answer)
+local toldBroken
+function MM.TellBroken()
+    if N.broken and not toldBroken then
+        toldBroken = true
+        IF.Print(N.BROKEN_TEXT)
+    end
 end
 
 -- The hotkey, the touchpad / override action, the key binding: labels on
@@ -739,6 +749,11 @@ function MM.Toggle()
     -- (a click arrives twice: down and up)
     if GetTime() - lastToggle < 0.3 then return end
     lastToggle = GetTime()
+    if not MM.Settings().labels then N.Check() end
+    if N.broken then
+        toldBroken = false
+        return MM.TellBroken()
+    end
     if not N.Supported() then
         IF.Print("This client can't read the minimap.")
         return
@@ -928,7 +943,7 @@ UpdateScans = function(labels, alerts)
     if labels then labelsLeft = 0 end
     if alerts then alertLeft = 0 end
     local s = MM.Settings()
-    local on = (s.labels and N.Supported()) or s.alert
+    local on = N.Supported() and (s.labels or s.alert)
     scanner:SetShown(on and true or false)
     if not on then N.Stop() end
 end
@@ -941,6 +956,14 @@ end
 IF.OnLogin(function()
     MM.ApplyLabels()
     MM.ApplyAlert()
+    -- (whether the game answers, once the minimap is up; said in the chat when one is on)
+    C_Timer.After(5, function()
+        N.Check()
+        local s = MM.Settings()
+        if N.broken and (s.labels or s.alert) then MM.TellBroken() end
+        MM.ApplyLabels()
+        MM.ApplyAlert()
+    end)
 end)
 
 -- /if nodes [step <n>|debug]: labels on / off, the scan's spacing, one scan
@@ -954,7 +977,7 @@ function MM.Command(option, value)
         if not N.Start({ all = true, debug = true }, function(found)
             IF.Print("Minimap: " .. #found .. " dot(s)")
         end) then
-            IF.Print("This client can't read the minimap now.")
+            IF.Print(N.broken and N.BROKEN_TEXT or "This client can't read the minimap now.")
         end
         return
     elseif option then

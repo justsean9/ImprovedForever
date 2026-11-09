@@ -76,6 +76,7 @@ local ITEMS = {
         binding = function() return MM.Key() end,
         keyText = function(size) return MM.KeyText(size) end,
         note = function()
+            if N.broken then return N.BROKEN_TEXT end
             if not N.Supported() then return "This client can't read the minimap." end
         end,
     }, OnOff(function() return S().labels end, function(on) MM.SetLabels(on) end, "Labels")),
@@ -117,7 +118,11 @@ local ITEMS = {
     Item({
         key = "alert", group = "alert", label = "Alerts",
         tip = function() return IF.Input.Pad() and ALERT_TIP_PAD or ALERT_TIP_MOUSE end,
+        note = function()
+            if N.broken then return N.BROKEN_TEXT end
+        end,
     }, OnOff(function() return S().alert end, function(on)
+        if on then N.Check() end
         S().alert = on
         MM.ApplyAlert()
     end, "Alerts")),
