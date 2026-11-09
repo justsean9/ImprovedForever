@@ -23,6 +23,7 @@ local TITLE_SIZE = 12
 local TITLE_COLOR = { 0.85, 0.82, 0.7 }   -- (the NPC's job, <Warrior Trainer>: softer than the name)
 local STEP = 0.1
 local OTHER_SCALE, OTHER_ALPHA = 0.8, 0.85
+local BAR_GAP = 7                    -- (between the health line and what's over it)
 local PLATE_DROP = 34                -- (ours sits this far under the game's plate centre: closer to the head)
 local FADE_SPEED = 8                    -- (how fast alpha and size ease)
 
@@ -47,7 +48,7 @@ local function Build()
     p.bar:SetMinMaxValues(0, 1)
     p.bar:SetValue(1)
     p.name = HS.Text(p, HS.FONT, NAME_SIZE, HS.GOLD[1], HS.GOLD[2], HS.GOLD[3])
-    p.name:SetPoint("BOTTOM", p, "TOP", 0, 3)
+    p.name:SetPoint("BOTTOM", p, "TOP", 0, BAR_GAP)
     p.name:SetWidth(W * 2.4)
     p.title = HS.Text(p, HS.FONT, TITLE_SIZE, TITLE_COLOR[1], TITLE_COLOR[2], TITLE_COLOR[3])
     p.title:SetWidth(W * 2.4)
@@ -132,6 +133,8 @@ local function Level(p, unit)
         local v = UnitLevel(unit)
         if Secret(v) then error("secret") end
         if not v or v <= 0 then return nil end
+        -- (a friend's level in plain gold: the difficulty colour is for what you fight)
+        if not UnitCanAttack("player", unit) then return v, HS.GOLD[1], HS.GOLD[2], HS.GOLD[3] end
         local color = (GetCreatureDifficultyColor or GetQuestDifficultyColor)(v)
         return v, color.r, color.g, color.b
     end)
@@ -209,9 +212,9 @@ local function Title(unit)
 end
 
 -- The name's colour: NPCs and mobs in the header's gold, other players in
--- their class colour (white when it can't be read).
+-- their class colour (white when it can't be read; gold with the setting off).
 local function NameColor(unit)
-    if not Flag(UnitIsPlayer, unit) then return HS.GOLD[1], HS.GOLD[2], HS.GOLD[3] end
+    if IN.Settings().nameplateClassColors == false or not Flag(UnitIsPlayer, unit) then return HS.GOLD[1], HS.GOLD[2], HS.GOLD[3] end
     local ok, r, g, b = pcall(function()
         local _, class = UnitClass(unit)
         if Secret(class) or not class then return nil end
@@ -239,7 +242,11 @@ local function Refresh(p)
     local set = IN.Settings()
     local hide
     if Flag(UnitIsPlayer, unit) then hide = set.nameplateHideBarPlayers == true
-    else hide = set.nameplateHideBar ~= false end
+    else
+        -- (a mob you can attack keeps its line, a friendly NPC loses it)
+        local mob = Flag(function(u) return UnitCanAttack("player", u) end, unit)
+        hide = (not mob) and set.nameplateHideBar ~= false
+    end
     local showBar = not hide
     p.bar:SetShown(showBar)
     p.track:SetShown(showBar)
@@ -257,10 +264,10 @@ local function Refresh(p)
         if showBar then
             -- (over the line: the name, the job between it and the line)
             if hasTitle then
-                p.title:SetPoint("BOTTOM", p, "TOP", 0, 3)
+                p.title:SetPoint("BOTTOM", p, "TOP", 0, BAR_GAP)
                 p.name:SetPoint("BOTTOM", p.title, "TOP", 0, 1)
             else
-                p.name:SetPoint("BOTTOM", p, "TOP", 0, 3)
+                p.name:SetPoint("BOTTOM", p, "TOP", 0, BAR_GAP)
             end
         else
             -- (no line: the name where the line was, the job under it)
@@ -282,7 +289,7 @@ local function Refresh(p)
         p.bar:SetMinMaxValues(0, 1)
         p.bar:SetValue(0)
     end
-    local r, g, b = TH.NameplateColor(unit)
+    local r, g, b = TH.NameplateColor(unit, IN.Settings().nameplateClassColors == false)
     p.bar:SetStatusBarColor(r, g, b)
     if showBar then
         Level(p, unit)

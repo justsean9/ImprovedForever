@@ -84,10 +84,16 @@ local ITEMS = {
             .. "the game's own.",
     }, Toggle("nameplates", "Nameplates", function() IN.Nameplates.Apply() end)),
     Item({
-        key = "nameplateHideBar", group = "top", section = "Nameplates", label = "Hide NPC nameplate health bar",
-        tip = "Hides the thin health line and the level circle on the nameplates of NPCs and mobs: the name "
-            .. "alone, in the line's place. Needs the nameplates on.",
-    }, Toggle("nameplateHideBar", "Hide NPC nameplate health bar", function() IN.Nameplates.Apply() end)),
+        key = "nameplateClassColors", group = "top", section = "Nameplates", label = "Class colours on player nameplates",
+        tip = "Other players' name and health line in their class colour. Off, the name is gold like an NPC's "
+            .. "and the line in the game's friend or foe colour. Needs the nameplates on.",
+    }, Toggle("nameplateClassColors", "Class colours on player nameplates", function() IN.Nameplates.Apply() end)),
+    Item({
+        key = "nameplateHideBar", group = "top", section = "Nameplates", label = "Hide friendly NPC health bar",
+        tip = "Hides the thin health line and the level circle on the nameplates of friendly NPCs (vendors, "
+            .. "trainers, guards): the name alone, in the line's place. Mobs you can attack keep theirs. "
+            .. "Needs the nameplates on.",
+    }, Toggle("nameplateHideBar", "Hide friendly NPC health bar", function() IN.Nameplates.Apply() end)),
     Item({
         key = "nameplateHideBarPlayers", group = "top", section = "Nameplates", label = "Hide player nameplate health bar",
         tip = "The same for other players' nameplates: the name alone, without the health line and the "

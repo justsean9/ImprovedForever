@@ -193,10 +193,11 @@ local function ClassColorOf(unit)
     return color and { color.r, color.g, color.b }
 end
 
-local function NameplateColor(unit)
+-- (noClass: a player in the game's colours of it, not its class's)
+local function NameplateColor(unit, noClass)
     local player = Flag(UnitIsPlayer, unit)
     if Flag(UnitIsDead, unit) and not player then return 0.5, 0.5, 0.5 end
-    if player then
+    if player and not noClass then
         local c = ClassColorOf(unit)
         if c then return c[1], c[2], c[3] end
     end
