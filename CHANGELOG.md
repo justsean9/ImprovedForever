@@ -1,5 +1,13 @@
 # Changelog
 
+## Immersion 0.7.0
+
+- **Drop a spell, item or macro on a keyboard bar tile** to put it on that key; drag it off to free the key (what was there comes up on the cursor). The tile shows the action's tooltip, its cast ring, cooldown and item buff. Over the bar the layer stays the plain one: Shift is the game's pick-up key, not a layer.
+
+## Core 0.14.1
+
+- Spells, items and macros can be put on and picked up from keys by other modules (used by Immersion's keyboard bar).
+
 ## Core 0.14.0
 
 - **Keyboard drawing in the Bindings tab** (with Immersion): with the mouse and keyboard in hand (or the Gamepad UI off), twelve keys (1 2 3 4, Z X C V, Q E R F) are drawn in three crosses beside the list. A click on a key binds the card picked there, a right-click clears it; Alt, Ctrl and Shift show their layer.
