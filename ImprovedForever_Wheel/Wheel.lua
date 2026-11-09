@@ -3,6 +3,12 @@
 -- MyWheels.lua's, drawn by Ring.lua.
 local IF = ImprovedForever
 
+-- The wheels' text font: Friz Quadrata has Latin letters only, so a Russian, Korean or Chinese client
+-- gets the game's own font (else the names of items and spells are rows of empty squares)
+local locale = GetLocale()
+IF.WHEEL_FONT = (locale == "ruRU" or locale == "koKR" or locale == "zhCN" or locale == "zhTW")
+    and STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+
 IF.AddModule({ key = "wheel", label = "Wheels", icon = IF.TEX .. "ic_mod_wheel", addon = ... })
 
 IF.RINGS = { "native", "quest", "consumables", "emotes", "group", "panels" }

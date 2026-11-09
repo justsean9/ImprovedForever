@@ -56,6 +56,10 @@
 - Recent loot waits for the end of combat to refresh.
 - Double-tap the touchpad corners works on the recent loot tiles.
 
+## Wheel 0.11.1
+
+- The wheels' text (the radial menus, the editor) uses the game's own font on a Russian, Korean or Chinese client, so item and spell names show their letters instead of empty squares.
+
 ## Wheel 0.11.0
 
 - **Wheel size** slider (50 to 150%) in a new Wheel options tab, for those who find the wheel too big. Changes out of combat.
