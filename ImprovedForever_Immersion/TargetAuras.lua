@@ -90,7 +90,9 @@ local function Width(c)
         local n = d + b
         width = n > 0 and (n * SIZE + (n - 1) * GAP + (d > 0 and b > 0 and GROUP_GAP - GAP or 0) + 4) or SIZE
     end
-    if c:GetWidth() ~= width then c:SetSize(width, SIZE) end
+    -- (the game's container can hand its width back secret: not compared, set again)
+    local now = c:GetWidth()
+    if IN.UnitFrames.Secret(now) or now ~= width then c:SetSize(width, SIZE) end
 end
 
 local function Update()
