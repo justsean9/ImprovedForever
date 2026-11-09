@@ -1,21 +1,19 @@
 -- Your health and power as two bars along the screen's bottom edge, the
 -- power (mana, rage, energy...) on the edge and the health over it, sharing
--- each a 1px line as the header's rule (the quest guide's, HeaderSlot.lua):
+-- each a line as the header's rule (the quest guide's, HeaderSlot.lua):
 -- full from end to end, two halves out from the middle, each darkening
 -- toward its end (lost draws them in from both ends to the middle).
 -- * the health: the game's own fills (the reputation bar's green, turning
 --   orange past half and red when low, red pulsing under URGENT), the
---   heals coming to you drawn on past its end;
--- * the power: the unit frames' fill of its kind (UnitFrames.lua), in the
---   game's colour of it (mana a lighter blue), pulsing when mana is low;
---   while you cast, the power the spell will take lit at its end; while
---   mana comes back, a shine running along it.
--- Both ease to a new value: what's just gained flashes past the fill as it
--- grows, what's just lost stays as a pale trail, then eases in after it; a
--- spark flares on the fill's edge as it moves.
--- Where a fill stops reads at a glance: a bright cap marks its edge, over a
--- dark backing with a dim tint of its colour (how far full goes) and
--- notches at each quarter.
+--   heals coming to you a striped band past its end;
+-- * the power: in the game's colour of its kind (mana a lighter blue),
+--   pulsing when mana is low; while you cast, the power the spell will take
+--   a striped band at its end, the stripes drifting in.
+-- The predictions' stripes are tools/make_bar_textures.py's.
+-- Both ease to a new value, what's just lost staying as a pale trail, then
+-- easing in after it. Where a fill stops reads at a glance: a bright cap
+-- marks its edge, over a dark backing with a dim tint of its colour (how
+-- far full goes) and notches at each quarter.
 -- The health's line is always on while you're alive; the power's peeks:
 -- shown in a fight or while your power isn't at rest (mana, energy short
 -- of full; rage, runic power above none), faded out when it's at rest
@@ -34,32 +32,30 @@ local UF = IN.UnitFrames
 local PlayerHealth = {}
 IN.PlayerHealth = PlayerHealth
 
-local LINE_H = IN.HP_H or 5
-local POWER_H = IN.MP_H or 5
+local LINE_H = IN.HP_H or 4
+local POWER_H = IN.MP_H or 3
+local GAP = 2
 local FADE = 0.3
 local HOLD = 0.8                 -- (whole again: shown this long before fading)
 local TRAIL_DELAY = 0.4          -- (the trail waits this long, then eases in)
 local WHITE = "Interface\\Buttons\\WHITE8x8"
-local SPARK = "Interface\\CastingBar\\UI-CastingBar-Spark"
+local STRIPES = IF.TEX .. "ic_bar_stripes"
+local STRIPE_TILE = 16           -- (the stripes' tile, px: a drift of it loops seamlessly)
+local RIBBON_TIME = 1.2          -- (the cost's stripes: one tile's drift, seconds)
 -- (the health's colours, plain: green, turning orange then red)
 local GREEN = { 0.25, 0.9, 0.3 }
 local ORANGE = { 1, 0.6, 0.1 }
 local RED = { 0.95, 0.2, 0.15 }
 local TRAIL = { 1, 0.93, 0.82, 0.55 }
--- (the predictions, as ribbons: a soft fill and the game's diagonal
--- stripes (its absorb shield's) drifting along it; the heals coming to
--- you, a spell's cost (its stripes in the power's colour, lit))
-local HEAL = { 0.45, 0.95, 0.5, 0.3 }
-local HEAL_STRIPE = { 0.75, 1, 0.8, 0.75 }
-local COST_BASE = { 0, 0, 0, 0.4 }
-local STRIPES = "Interface\\RaidFrame\\Shield-Overlay"
-local STRIPE_TILE = 32          -- (the stripes' tile, px: a drift of it loops seamlessly)
-local RIBBON_TIME = 1.6         -- (one tile's drift, seconds)
+-- (the predictions, striped bands, square: their base, their stripes)
+local HEAL = { 0.45, 0.95, 0.5, 0.35 }
+local HEAL_STRIPE = { 0.8, 1, 0.82, 0.85 }
+local COST = { 0, 0, 0, 0.45 }          -- (a spell's cost: the fill darkened under its stripes)
 local POWER_COLOR = { 0.3, 0.6, 1 }     -- (the power's, when the game has no colour for it: mana's)
 -- (the game's mana blue (0, 0, 1) is near black on a thin line: a lighter one)
 local OWN_COLORS = { MANA = POWER_COLOR }
 -- (a fill's colour at its leading edge, against its middle: darker, never
--- see-through, so what's under it (the lead, the trail) stays hidden)
+-- see-through, so the trail under it stays hidden)
 local EDGE = 0.55
 local CAP_W = 2
 -- (the empty part: a dark backing for contrast, a dim tint of the line's
@@ -68,15 +64,9 @@ local CAP_W = 2
 local BACKING = 0.4
 local TINT = 0.22
 local NOTCHES = { 0.25, 0.5, 0.75 }
--- (the gain's flash, the spark's flare and its rest between two, the shine)
-local LEAD_FADE = 0.6
-local SPARK_GAP = 0.4
-local SHINE_W, SHINE_TIME = 48, 0.9
 -- (low mana: a pulse over the power's fill from LOW_MANA down)
 local LOW_MANA = 0.25
 local LOW_POINTS = { { 0, 1 }, { LOW_MANA, 1 }, { LOW_MANA + 0.001, 0 }, { 1, 0 } }
--- (the shine, gone at full)
-local FULL_POINTS = { { 0, 1 }, { 0.995, 1 }, { 1, 0 } }
 -- (the powers at rest when empty: out of a fight, the rest at full)
 local RESTS_EMPTY = { RAGE = true, RUNIC_POWER = true }
 -- (the colours over the green, by health left: orange from three quarters
@@ -86,10 +76,9 @@ local URGENT = 0.35
 local ORANGE_POINTS = { { 0, 1 }, { 0.5, 1 }, { 0.75, 0 }, { 1, 0 } }
 local RED_POINTS = { { 0, 1 }, { 0.25, 1 }, { 0.4, 0 }, { 1, 0 } }
 local URGENT_POINTS = { { 0, 1 }, { URGENT, 1 }, { URGENT + 0.001, 0 }, { 1, 0 } }
--- (a track's layers: the trail and the lead under the fill, the heals
--- past it, the fill, the pulses, the cost and the shine over it, the
--- notches, the spark on top)
-local L_UNDER, L_HEAL, L_FILL, L_OVER, L_MARKS, L_SPARK = 1, 2, 3, 4, 5, 6
+-- (a track's layers: the trail under the fill, the heals past it, the
+-- fill, the pulses and the cost over it, the notches)
+local L_UNDER, L_HEAL, L_FILL, L_OVER, L_MARKS = 1, 2, 3, 4, 5
 local Try, Flag = UF.Try, UF.Flag
 local SI = Enum.StatusBarInterpolation
 local function Secret(v)
@@ -110,9 +99,9 @@ PlayerHealth.holder = holder
 -- Drawing helpers
 ---------------------------------------------------------------------------
 -- (a layer frame of a track, over its own)
-local function Layer(track, level)
-    local f = CreateFrame("Frame", nil, track)
-    f:SetAllPoints()
+local function Layer(track, level, parent)
+    local f = CreateFrame("Frame", nil, parent or track)
+    f:SetAllPoints(track)
     f:SetFrameLevel(track:GetFrameLevel() + level)
     return f
 end
@@ -127,7 +116,6 @@ local function Track(height)
     back:SetAllPoints()
     back:SetColorTexture(0, 0, 0, BACKING)
     t.marks = Layer(t, L_MARKS)
-    t.sparks = Layer(t, L_SPARK)
     t.notches = {}
     for _, at in ipairs(NOTCHES) do
         for side = -1, 1, 2 do
@@ -155,53 +143,17 @@ end
 local line = Track(LINE_H)
 local power = Track(POWER_H)
 
--- (a half's bar, full out from the middle)
-local function Bar(track, left, level, parent)
-    local bar = CreateFrame("StatusBar", nil, parent or track)
-    bar:SetPoint(left and "TOPLEFT" or "TOPRIGHT", track)
-    bar:SetPoint(left and "BOTTOMRIGHT" or "BOTTOMLEFT", track, "BOTTOM")
-    bar:SetFrameLevel(track:GetFrameLevel() + level)
-    bar:SetReverseFill(left)
-    bar:SetStatusBarTexture(WHITE)
-    bar:SetMinMaxValues(0, 1)
-    bar:SetValue(1)
-    return bar
-end
-
--- (a bar laid from a fill's leading edge (its outer one: the left half
--- fills reversed), a half wide so it shares the line's scale: outward (the
--- heals coming) or back in over the fill (a spell's cost))
-local function EdgeBar(track, fill, left, outward, level, parent)
-    local bar = CreateFrame("StatusBar", nil, parent or track)
-    local edge = left and "LEFT" or "RIGHT"
-    local from = outward and (left and "RIGHT" or "LEFT") or edge
-    bar:SetPoint("TOP" .. from, fill, "TOP" .. edge)
-    bar:SetPoint("BOTTOM" .. from, fill, "BOTTOM" .. edge)
-    bar:SetFrameLevel(track:GetFrameLevel() + level)
-    bar:SetReverseFill(outward == left)
-    bar:SetStatusBarTexture(WHITE)
-    bar:SetMinMaxValues(0, 1)
-    bar:SetValue(0)
-    track.sized[#track.sized + 1] = function(half) bar:SetWidth(math.max(half, 1)) end
-    return bar
-end
-
--- (white: its colour is the gradient's, Grade)
-local function Over(bar, sub)
-    local t = bar:CreateTexture(nil, "ARTWORK", nil, sub)
-    t:SetAllPoints(bar:GetStatusBarTexture())
-    t:SetColorTexture(1, 1, 1, 1)
-    t:SetAlpha(0)
-    return t
+-- (a region tinted)
+local function Tinted(region, color, alpha)
+    region:SetVertexColor(color[1], color[2], color[3], alpha or color[4] or 1)
 end
 
 -- (a fill's colour darkening toward its end, as the header's rule fades:
--- its colour at the middle, `edge` of it at the end, never see-through)
-local function Grade(tex, left, color, edge)
+-- its colour at the middle, EDGE of it at the end, never see-through)
+local function Grade(tex, left, color)
     if not (tex and tex.SetGradient and CreateColor) then return end
-    local e = edge or EDGE
     local lit = CreateColor(color[1], color[2], color[3], 1)
-    local dark = CreateColor(color[1] * e, color[2] * e, color[3] * e, 1)
+    local dark = CreateColor(color[1] * EDGE, color[2] * EDGE, color[3] * EDGE, 1)
     -- (the gradient must not undo the texture's own alpha: the colours' strength)
     local own = tex:GetAlpha()
     pcall(tex.SetGradient, tex, "HORIZONTAL", left and dark or lit, left and lit or dark)
@@ -236,55 +188,80 @@ local function Tint(track, left, color)
     return t
 end
 
--- (a bright cap on the fill's leading edge, placed by the bar, so a
--- secret value moves it too)
-local function Cap(bar, left, color)
-    local fill = bar:GetStatusBarTexture()
+-- (a half's bar, full out from the middle)
+local function Bar(track, left, level)
+    local bar = CreateFrame("StatusBar", nil, track)
+    bar:SetPoint(left and "TOPLEFT" or "TOPRIGHT", track)
+    bar:SetPoint(left and "BOTTOMRIGHT" or "BOTTOMLEFT", track, "BOTTOM")
+    bar:SetFrameLevel(track:GetFrameLevel() + level)
+    bar:SetReverseFill(left)
+    bar:SetStatusBarTexture(WHITE)
+    bar:SetMinMaxValues(0, 1)
+    bar:SetValue(1)
+    return bar
+end
+
+-- (a bar laid from a fill's leading edge (its outer one: the left half
+-- fills reversed), a half wide so it shares the line's scale: outward (the
+-- heals coming) or back in over the fill (a spell's cost))
+local function EdgeBar(track, fill, left, outward, level, parent)
+    local bar = CreateFrame("StatusBar", nil, parent or track)
+    local edge = left and "LEFT" or "RIGHT"
+    local from = outward and (left and "RIGHT" or "LEFT") or edge
+    bar:SetPoint("TOP" .. from, fill, "TOP" .. edge)
+    bar:SetPoint("BOTTOM" .. from, fill, "BOTTOM" .. edge)
+    bar:SetFrameLevel(track:GetFrameLevel() + level)
+    bar:SetReverseFill(outward == left)
+    bar:SetMinMaxValues(0, 1)
+    bar:SetValue(0)
+    track.sized[#track.sized + 1] = function(half) bar:SetWidth(math.max(half, 1)) end
+    return bar
+end
+
+-- (a colour over the fill (orange, red over the green), graded as it is)
+local function Over(bar, fill, sub, left, color)
+    local t = bar:CreateTexture(nil, "ARTWORK", nil, sub)
+    t:SetAllPoints(fill)
+    t:SetColorTexture(1, 1, 1, 1)
+    t:SetAlpha(0)
+    Grade(t, left, color)
+    return t
+end
+
+-- (a bright cap on the fill's leading edge (its outer one: the left half
+-- fills reversed), placed by the bar, so a secret value moves it too)
+local function Cap(bar, fill, left, color)
     local c = bar:CreateTexture(nil, "OVERLAY", nil, 7)
     c:SetPoint(left and "TOPLEFT" or "TOPRIGHT", fill)
     c:SetPoint(left and "BOTTOMLEFT" or "BOTTOMRIGHT", fill)
     c:SetWidth(CAP_W)
-    c:SetColorTexture(color[1], color[2], color[3], 1)
+    c:SetColorTexture(1, 1, 1, 1)
+    Tinted(c, color)
     return c
 end
 
--- (an alpha flash, from `from` to nothing)
-local function Flash(region, from, time)
-    local g = region:CreateAnimationGroup()
-    local a = g:CreateAnimation("Alpha")
-    a:SetFromAlpha(from)
-    a:SetToAlpha(0)
-    a:SetDuration(time)
-    a:SetSmoothing("OUT")
-    return g
+-- (the stripes, still over the whole track, tiling)
+local function Stripes(parent, track, color, alpha)
+    local s = parent:CreateTexture(nil, "OVERLAY")
+    s:SetTexture(STRIPES, "REPEAT", "REPEAT")
+    s:SetHorizTile(true)
+    s:SetVertTile(true)
+    s:SetPoint("TOPLEFT", track, "TOPLEFT", -STRIPE_TILE * 2, 0)
+    s:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", STRIPE_TILE * 2, 0)
+    Tinted(s, color, alpha)
+    return s
 end
 
--- (the spark on a fill's edge, flaring as it moves: never lit at rest,
--- where it would hide the very edge it marks)
-local function Spark(track, fill, left)
-    local s = track.sparks:CreateTexture(nil, "OVERLAY")
-    s:SetTexture(SPARK)
-    s:SetBlendMode("ADD")
-    s:SetWidth(12)
-    local edge = left and "LEFT" or "RIGHT"
-    local h = track:GetHeight() * 2
-    s:SetPoint("TOP", fill, "TOP" .. edge, 0, h)
-    s:SetPoint("BOTTOM", fill, "BOTTOM" .. edge, 0, -h)
-    s:SetAlpha(0)
-    local g = s:CreateAnimationGroup()
-    local up = g:CreateAnimation("Alpha")
-    up:SetFromAlpha(0)
-    up:SetToAlpha(1)
-    up:SetDuration(0.08)
-    up:SetOrder(1)
-    local down = g:CreateAnimation("Alpha")
-    down:SetFromAlpha(1)
-    down:SetToAlpha(0)
-    down:SetDuration(0.45)
-    down:SetSmoothing("OUT")
-    down:SetOrder(2)
-    s.flare = g
-    return s
+-- (a frame clipping what's in it to a span (a bar's fill): the stripes lie
+-- still and only show over the fill, so they never stretch as it moves;
+-- DoesItDie's way, as its width may come from a secret)
+local function Clip(parent, track, span, level)
+    local clip = CreateFrame("Frame", nil, parent)
+    clip:SetPoint("TOPLEFT", span)
+    clip:SetPoint("BOTTOMRIGHT", span)
+    clip:SetFrameLevel(track:GetFrameLevel() + level)
+    clip:SetClipsChildren(true)
+    return clip
 end
 
 -- (a pulse layer over a track's fills: its glows' strength the secret
@@ -302,49 +279,24 @@ local function Pulse(track, low, time)
     return f, g
 end
 
--- A ribbon over a prediction bar's span (the bar's own fill unseen): a
--- soft fill and the stripes drifting along (`drift` +1 right, -1 left).
--- The stripes lie still over the whole track, clipped to the span, so they
--- never stretch as the span moves (DoesItDie's way: its width may come from
--- a secret)
-local function Ribbon(parent, track, bar, level, base, stripe, drift)
-    local span = bar:CreateTexture(nil, "ARTWORK")
-    span:SetTexture(WHITE)
-    span:SetVertexColor(1, 1, 1, 0)
-    bar:SetStatusBarTexture(span)
-    local clip = CreateFrame("Frame", nil, parent)
-    clip:SetPoint("TOPLEFT", span)
-    clip:SetPoint("BOTTOMRIGHT", span)
-    clip:SetFrameLevel(track:GetFrameLevel() + level)
-    clip:SetClipsChildren(true)
-    local fill = clip:CreateTexture(nil, "ARTWORK")
-    fill:SetAllPoints()
-    fill:SetColorTexture(base[1], base[2], base[3], base[4])
-    local s = clip:CreateTexture(nil, "OVERLAY")
-    s:SetTexture(STRIPES, "REPEAT", "REPEAT")
-    s:SetHorizTile(true)
-    s:SetVertTile(true)
-    s:SetBlendMode("ADD")
-    s:SetVertexColor(stripe[1], stripe[2], stripe[3], stripe[4] or 0.7)
-    s:SetPoint("TOPLEFT", track, "TOPLEFT", -STRIPE_TILE * 2, 0)
-    s:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", STRIPE_TILE * 2, 0)
-    local g = s:CreateAnimationGroup()
-    g:SetLooping("REPEAT")
-    local m = g:CreateAnimation("Translation")
-    m:SetOffset(drift * STRIPE_TILE, 0)
-    m:SetDuration(RIBBON_TIME)
-    g:Play()
-    return { span = span, clip = clip, fill = fill, stripes = s, drift = g }
+-- (a glow over a fill, its strength set by a curve)
+local function Glow(layer, fill, r, g, b, a)
+    local t = layer:CreateTexture(nil, "OVERLAY")
+    t:SetAllPoints(fill)
+    t:SetTexture(WHITE)
+    t:SetBlendMode("ADD")
+    t:SetVertexColor(r, g, b, a)
+    t:SetAlpha(0)
+    return t
 end
 
-local pulse, beat = Pulse(line, 0.1, 0.5)
-local powerPulse, powerBeat = Pulse(power, 0.15, 0.6)
+local pulse, beat = Pulse(line, 0.15, 0.5)
+local powerPulse, powerBeat = Pulse(power, 0.2, 0.6)
 
 ---------------------------------------------------------------------------
 -- The two lines: two halves each, full out from the middle
 ---------------------------------------------------------------------------
--- (per line: its halves, the trail's value and when it eases in, the last
--- spark's time)
+-- (per line: its halves, the trail's value and when it eases in)
 local healthLine = { halves = {}, trail = {} }
 local powerLine = { halves = {}, trail = {} }
 local halves, powerHalves = healthLine.halves, powerLine.halves
@@ -355,102 +307,49 @@ for i = 1, 2 do
     Tint(line, left, { 1, 1, 1 })
     h.trail = Bar(line, left, L_UNDER)
     Fade(h.trail:GetStatusBarTexture(), left, TRAIL, TRAIL[4], 0.55)
-    h.lead = Bar(line, left, L_UNDER)
-    Fade(h.lead:GetStatusBarTexture(), left, Lit(GREEN, 0.6), 1, 0.7)
-    h.lead:SetAlpha(0)
-    h.flash = Flash(h.lead, 1, LEAD_FADE)
     h.bar = Bar(line, left, L_FILL)
     local fill = h.bar:GetStatusBarTexture()
-    h.orange, h.red = Over(h.bar, 1), Over(h.bar, 2)
     Grade(fill, left, GREEN)
-    Grade(h.orange, left, ORANGE)
-    Grade(h.red, left, RED)
-    h.cap = Cap(h.bar, left, { 1, 0.97, 0.88 })
-    h.spark = Spark(line, fill, left)
-    h.spark:SetVertexColor(0.8, 1, 0.8)
-    -- (the heals coming, from the fill's end on)
+    h.orange, h.red = Over(h.bar, fill, 1, left, ORANGE), Over(h.bar, fill, 2, left, RED)
+    h.cap = Cap(h.bar, fill, left, { 1, 0.97, 0.88 })
+    -- (the heals coming, from the fill's end on: a striped band, square)
     h.heal = EdgeBar(line, fill, left, true, L_HEAL)
-    Ribbon(line, line, h.heal, L_HEAL, HEAL, HEAL_STRIPE, left and -1 or 1)
-    -- (the pulse's red over it)
-    local alarm = pulse:CreateTexture(nil, "OVERLAY")
-    alarm:SetAllPoints(fill)
-    alarm:SetColorTexture(1, 0.25, 0.2, 0.55)
-    alarm:SetBlendMode("ADD")
-    alarm:SetAlpha(0)
-    h.alarm = alarm
+    local healSpan = h.heal:CreateTexture(nil, "ARTWORK")
+    healSpan:SetColorTexture(1, 1, 1, 1)
+    Tinted(healSpan, HEAL)
+    h.heal:SetStatusBarTexture(healSpan)
+    Stripes(Clip(line, line, healSpan, L_HEAL), line, HEAL_STRIPE)
+    h.alarm = Glow(pulse, fill, 1, 0.25, 0.2, 0.55)
     halves[i] = h
 
     local p = { left = left }
     p.tint = Tint(power, left, POWER_COLOR)
     p.trail = Bar(power, left, L_UNDER)
     Fade(p.trail:GetStatusBarTexture(), left, TRAIL, TRAIL[4], 0.55)
-    p.lead = Bar(power, left, L_UNDER)
-    p.lead:SetAlpha(0)
-    p.flash = Flash(p.lead, 1, LEAD_FADE)
     p.bar = Bar(power, left, L_FILL)
     p.bar:SetValue(0)
     local pfill = p.bar:GetStatusBarTexture()
-    p.cap = Cap(p.bar, left, Lit(POWER_COLOR, 0.5))
-    p.spark = Spark(power, pfill, left)
-    -- (low mana's pulse over it)
-    local low = powerPulse:CreateTexture(nil, "OVERLAY")
-    low:SetAllPoints(pfill)
-    low:SetColorTexture(0.75, 0.9, 1, 0.6)
-    low:SetBlendMode("ADD")
-    low:SetAlpha(0)
-    p.low = low
+    p.cap = Cap(p.bar, pfill, left, Lit(POWER_COLOR, 0.5))
+    p.low = Glow(powerPulse, pfill, 0.75, 0.9, 1, 0.6)
     -- (a spell's cost, from the fill's end back in, clipped to the fill: a
-    -- cost past what you have lights it all)
-    local clip = CreateFrame("Frame", nil, power)
-    clip:SetPoint("TOPLEFT", pfill)
-    clip:SetPoint("BOTTOMRIGHT", pfill)
-    clip:SetFrameLevel(power:GetFrameLevel() + L_OVER)
-    clip:SetClipsChildren(true)
+    -- cost past what you have covers it all; a striped band, square, its
+    -- stripes drifting in, toward where the mana goes)
+    local clip = Clip(power, power, pfill, L_OVER)
     clip:Hide()
     p.costClip = clip
     p.cost = EdgeBar(power, pfill, left, false, L_OVER, clip)
-    -- (a ribbon: the fill under it dimmed, the stripes drifting in, toward
-    -- where the mana goes)
-    p.costRibbon = Ribbon(clip, power, p.cost, L_OVER, COST_BASE, Lit(POWER_COLOR, 0.5), left and 1 or -1)
-    -- (its far end marked)
-    local costSpan = p.costRibbon.span
-    local cut = p.costRibbon.clip:CreateTexture(nil, "OVERLAY", nil, 7)
-    cut:SetColorTexture(0, 0, 0, 0.8)
-    cut:SetWidth(1)
-    cut:SetPoint("TOP", costSpan, left and "TOPRIGHT" or "TOPLEFT")
-    cut:SetPoint("BOTTOM", costSpan, left and "BOTTOMRIGHT" or "BOTTOMLEFT")
-    -- (mana coming back: a shine running out along the fill, clipped to
-    -- it, gone at full)
-    local shineClip = CreateFrame("Frame", nil, power)
-    shineClip:SetPoint("TOPLEFT", pfill)
-    shineClip:SetPoint("BOTTOMRIGHT", pfill)
-    shineClip:SetFrameLevel(power:GetFrameLevel() + L_OVER)
-    shineClip:SetClipsChildren(true)
-    p.shineClip = shineClip
-    local shine = CreateFrame("Frame", nil, shineClip)
-    shine:SetSize(SHINE_W, POWER_H)
-    shine:SetPoint(left and "LEFT" or "RIGHT", power, "CENTER")
-    shine:SetAlpha(0)
-    for side = 1, 2 do
-        local t = shine:CreateTexture(nil, "OVERLAY")
-        t:SetTexture(WHITE)
-        t:SetBlendMode("ADD")
-        t:SetPoint(side == 1 and "TOPLEFT" or "TOPRIGHT")
-        t:SetPoint(side == 1 and "BOTTOMRIGHT" or "BOTTOMLEFT", shine, side == 1 and "BOTTOM" or "BOTTOM")
-        Fade(t, side == 1, { 1, 1, 1 }, 0.7, 0)
-    end
-    local run = shine:CreateAnimationGroup()
-    local move = run:CreateAnimation("Translation")
-    move:SetDuration(SHINE_TIME)
-    move:SetSmoothing("IN_OUT")
-    local seen = run:CreateAnimation("Alpha")
-    seen:SetFromAlpha(1)
-    seen:SetToAlpha(1)
-    seen:SetDuration(SHINE_TIME)
-    power.sized[#power.sized + 1] = function(half)
-        move:SetOffset((left and -1 or 1) * (half + SHINE_W), 0)
-    end
-    p.shine = run
+    local span = p.cost:CreateTexture(nil, "ARTWORK")
+    span:SetColorTexture(1, 1, 1, 1)
+    Tinted(span, COST)
+    p.cost:SetStatusBarTexture(span)
+    local costStripes = Clip(clip, power, span, L_OVER)
+    p.costStripes = Stripes(costStripes, power, Lit(POWER_COLOR, 0.5), 0.85)
+    local drift = p.costStripes:CreateAnimationGroup()
+    drift:SetLooping("REPEAT")
+    local move = drift:CreateAnimation("Translation")
+    move:SetOffset((left and 1 or -1) * STRIPE_TILE, 0)
+    move:SetDuration(RIBBON_TIME)
+    p.drift = drift
     powerHalves[i] = p
 end
 
@@ -502,7 +401,7 @@ local function IncomingHeals()
 end
 
 -- (a region's alpha from a curve of your health (or power) percent,
--- secret or not)
+-- secret or not; the way it went, for /if lineprobe)
 local function Shade(t, points, of)
     of = of or HEALTH
     -- (read whole, out of a fight: worked out here, never by the curve)
@@ -517,18 +416,19 @@ local function Shade(t, points, of)
             end
         end
         t:SetAlpha(math.min(math.max(alpha, 0), 1))
-        return
+        return "whole"
     end
     local c = Curve(points)
     if not (c and pcall(function() t:SetAlpha(of.Percent(c)) end)) then
         t:SetAlpha(0)
+        return "none"
     end
+    return "curve"
 end
 
 ---------------------------------------------------------------------------
--- Filling: the fill eased, the lead snapped (the gain shows past the fill
--- as it grows), the trail after (the loss shows past it as it shrinks):
--- never a comparison of the two, the bars' order does it
+-- Filling: the fill eased, the trail after (the loss shows past the fill as
+-- it shrinks): never a comparison of the two, the bars' order does it
 ---------------------------------------------------------------------------
 -- (a bar to a value, eased if asked; false when the value won't go)
 local function To(bar, value, ease)
@@ -540,21 +440,6 @@ local function TrailTo(L, ease, empty)
     L.trail.at = nil
     for _, h in ipairs(L.halves) do
         if not To(h.trail, L.trail.value, ease) then h.trail:SetValue(empty) end
-    end
-end
-
--- (the line moved: the lead flashes, the spark flares (not too often))
-local function Moved(L)
-    for _, h in ipairs(L.halves) do
-        h.flash:Stop()
-        h.flash:Play()
-    end
-    local now = GetTime()
-    if L.sparkAt and now - L.sparkAt < SPARK_GAP then return end
-    L.sparkAt = now
-    for _, h in ipairs(L.halves) do
-        h.spark.flare:Stop()
-        h.spark.flare:Play()
     end
 end
 
@@ -581,21 +466,16 @@ local function Fill(ease)
             bar:SetValue(1)
             healthLine.trail.value = 1
         end
-        if not (Try(h.lead.SetMinMaxValues, h.lead, 0, max) and To(h.lead, value, false)) then
-            h.lead:SetMinMaxValues(0, 1)
-            h.lead:SetValue(0)
-        end
         if not ease and not Try(h.trail.SetMinMaxValues, h.trail, 0, max) then
             h.trail:SetMinMaxValues(0, 1)
         end
-        Shade(h.orange, ORANGE_POINTS)
+        h.how = Shade(h.orange, ORANGE_POINTS)
         Shade(h.red, RED_POINTS)
         Shade(h.alarm, URGENT_POINTS)
     end
     FillHeals(max)
     if ease then
         healthLine.trail.at = GetTime() + TRAIL_DELAY
-        Moved(healthLine)
     else
         TrailTo(healthLine, false, 1)
     end
@@ -625,14 +505,9 @@ local function FillPower(ease)
             p.token = token
             local color = PowerColor(token)
             Grade(p.bar:GetStatusBarTexture(), p.left, color)
-            Fade(p.lead:GetStatusBarTexture(), p.left, Lit(color, 0.6), 1, 0.7)
             Fade(p.tint, p.left, color, TINT, 0.5)
-            local cap = Lit(color, 0.5)
-            p.cap:SetColorTexture(cap[1], cap[2], cap[3], 1)
-            local spark = Lit(color, 0.4)
-            p.spark:SetVertexColor(spark[1], spark[2], spark[3])
-            local stripe = Lit(color, 0.5)
-            p.costRibbon.stripes:SetVertexColor(stripe[1], stripe[2], stripe[3], 0.7)
+            Tinted(p.cap, Lit(color, 0.5))
+            Tinted(p.costStripes, Lit(color, 0.5), 0.85)
         end
         local bar = p.bar
         if not (Try(bar.SetMinMaxValues, bar, 0, max) and To(bar, value, ease)) then
@@ -640,34 +515,26 @@ local function FillPower(ease)
             bar:SetValue(0)
             powerLine.trail.value = 0
         end
-        if not (Try(p.lead.SetMinMaxValues, p.lead, 0, max) and To(p.lead, value, false)) then
-            p.lead:SetMinMaxValues(0, 1)
-            p.lead:SetValue(0)
-        end
         if not ease and not Try(p.trail.SetMinMaxValues, p.trail, 0, max) then
             p.trail:SetMinMaxValues(0, 1)
         end
         if not Try(p.cost.SetMinMaxValues, p.cost, 0, max) then p.cost:SetMinMaxValues(0, 1) end
-        -- (low mana pulses, and its shine shows short of full; the other
-        -- kinds run low by design)
+        -- (low mana pulses; the other kinds run low by design)
         if token == "MANA" then
             Shade(p.low, LOW_POINTS, POWER)
-            Shade(p.shineClip, FULL_POINTS, POWER)
         else
             p.low:SetAlpha(0)
-            p.shineClip:SetAlpha(0)
         end
     end
     if ease then
         powerLine.trail.at = GetTime() + TRAIL_DELAY
-        Moved(powerLine)
     else
         TrailTo(powerLine, false, 0)
     end
 end
 
 ---------------------------------------------------------------------------
--- A spell's cost while you cast it, and mana coming back
+-- A spell's cost while you cast it
 ---------------------------------------------------------------------------
 local MANA_TYPE = Enum.PowerType and Enum.PowerType.Mana or 0
 
@@ -685,9 +552,8 @@ local function SpellCost(spellID, token)
     return nil
 end
 
--- (the cast being shown; the last time a spell took mana)
+-- (the cast being shown)
 local casting = {}
-local spentAt = 0
 
 -- (none: pass `false`; a cost, as it is, secret or not: never compared,
 -- the bar takes it or doesn't)
@@ -696,9 +562,10 @@ local function ShowCost(cost)
     for _, p in ipairs(powerHalves) do
         if some and Try(p.cost.SetValue, p.cost, cost) then
             p.costClip:Show()
-            if not p.costRibbon.drift:IsPlaying() then p.costRibbon.drift:Play() end
+            if not p.drift:IsPlaying() then p.drift:Play() end
         else
             p.cost:SetValue(0)
+            p.drift:Stop()
             p.costClip:Hide()
         end
     end
@@ -719,67 +586,6 @@ local function CastEnd(castGUID)
     end
     casting.guid = nil
     ShowCost(false)
-end
-
--- (a spell went off: it took mana when it costs some)
-local function Spent(spellID)
-    local cost = SpellCost(spellID, "MANA")
-    if Secret(cost) or (type(cost) == "number" and cost > 0) then spentAt = GetTime() end
-end
-
--- (the mana's last whole read: out of a fight, a gain is told from it)
-local lastMana
-local function Gained()
-    local value = POWER.Read()
-    if Secret(value) or type(value) ~= "number" then
-        lastMana = nil
-        -- (in a fight: a change that isn't a spell's cost is mana coming back)
-        return GetTime() - spentAt > 0.5
-    end
-    local up = lastMana ~= nil and value > lastMana
-    lastMana = value
-    return up
-end
-
-local function Shine()
-    if (powerHalves[1].token or PowerToken()) ~= "MANA" then return end
-    if not Gained() then return end
-    for _, p in ipairs(powerHalves) do
-        if not p.shine:IsPlaying() then p.shine:Play() end
-    end
-end
-
----------------------------------------------------------------------------
--- Probe: does Forever pause mana coming back after a spell (the five
--- second rule)? Out of a fight, each mana spell and each change of mana,
--- timed, into IF.db.manaLog (a fresh log per session). Remove once read.
----------------------------------------------------------------------------
-local manaLog
-local function Log(text)
-    if not IF.db then return end
-    if not manaLog then
-        manaLog = { date("%Y-%m-%d %H:%M:%S") }
-        IF.db.manaLog = manaLog
-    end
-    if #manaLog < 400 then
-        manaLog[#manaLog + 1] = string.format("%.2f %s", GetTime() % 1000, text)
-    end
-end
-
-local logged
-local function LogMana(event, spellID)
-    if demo or IF.InCombat() then return end
-    if event == "UNIT_SPELLCAST_SUCCEEDED" then
-        local cost = SpellCost(spellID, "MANA")
-        if not Secret(cost) and type(cost) == "number" and cost > 0 then
-            Log("cast " .. tostring(spellID) .. " cost " .. cost)
-        end
-        return
-    end
-    local value = UnitPower("player", MANA_TYPE)
-    if Secret(value) or type(value) ~= "number" or value == logged then return end
-    logged = value
-    Log("mana " .. value)
 end
 
 ---------------------------------------------------------------------------
@@ -857,9 +663,9 @@ end
 
 local POWER_CHANGE = { UNIT_POWER_UPDATE = true, UNIT_POWER_FREQUENT = true }
 local POWER_SNAP = { UNIT_MAXPOWER = true, UNIT_DISPLAYPOWER = true }
-local powerAt
 local CAST_END = { UNIT_SPELLCAST_STOP = true, UNIT_SPELLCAST_FAILED = true,
     UNIT_SPELLCAST_INTERRUPTED = true, UNIT_SPELLCAST_SUCCEEDED = true }
+local powerAt
 local events = CreateFrame("Frame")
 events:RegisterUnitEvent("UNIT_HEALTH", "player")
 events:RegisterUnitEvent("UNIT_MAXHEALTH", "player")
@@ -878,26 +684,16 @@ events:RegisterEvent("PLAYER_ALIVE")
 events:RegisterEvent("PLAYER_UNGHOST")
 events:SetScript("OnEvent", function(_, event, _, castGUID, spellID)
     if event == "UNIT_SPELLCAST_START" then
-        if PlayerHealth.power then CastStart(castGUID, spellID) end
-        return
+        if PlayerHealth.power and not demo then CastStart(castGUID, spellID) end
     elseif CAST_END[event] then
-        CastEnd(castGUID)
-        if event == "UNIT_SPELLCAST_SUCCEEDED" then
-            Spent(spellID)
-            LogMana(event, spellID)
-        end
-        return
+        if not demo then CastEnd(castGUID) end
     elseif event == "UNIT_HEAL_PREDICTION" then
         if PlayerHealth.on and PlayerHealth.health then FillHeals((select(2, HEALTH.Read()))) end
-        return
-    end
-    if POWER_CHANGE[event] then
+    elseif POWER_CHANGE[event] then
         -- (the two power events come together for one change: taken once)
         local now = GetTime()
         if now == powerAt then return end
         powerAt = now
-        LogMana(event)
-        if PlayerHealth.on and PlayerHealth.power and holder:IsShown() then Shine() end
         Update(nil, true)
     elseif event == "UNIT_HEALTH" then
         Update(true, nil)
@@ -912,19 +708,19 @@ events:SetScript("OnEvent", function(_, event, _, castGUID, spellID)
 end)
 
 ---------------------------------------------------------------------------
--- On while a setting is: the power on the edge, the health over it
--- sharing its top border (alone: on the edge)
+-- On while a setting is: the power on the edge, the health over it (alone:
+-- on the edge)
 ---------------------------------------------------------------------------
 local function Place(health, mp)
     line:SetShown(health)
     power:SetShown(mp)
     line:ClearAllPoints()
-    line:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", 0, mp and POWER_H + 2 or 0)
-    line:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", 0, mp and POWER_H + 2 or 0)
+    line:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", 0, mp and POWER_H + GAP or 0)
+    line:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", 0, mp and POWER_H + GAP or 0)
     power:ClearAllPoints()
     power:SetPoint("BOTTOMLEFT")
     power:SetPoint("BOTTOMRIGHT")
-    local h = (health and LINE_H or 0) + (mp and POWER_H or 0) + (health and mp and 2 or 0)
+    local h = (health and LINE_H or 0) + (mp and POWER_H or 0) + (health and mp and GAP or 0)
     holder:SetHeight(math.max(h, 1))
     if not health then beat:Stop() end
     if not mp then
@@ -936,6 +732,7 @@ end
 
 local function Watch()
     if not IF.db then return end
+    IF.db.manaLog = nil         -- (the mana regen probe's log, done)
     local s = IN.Settings()
     local edit = UF.EditMode()
     local health, mp = s.hpLine and not edit or false, s.mpLine and not edit or false
@@ -978,13 +775,12 @@ local function DemoStop(quiet)
     if not quiet then IF.Print("Line test: done, the real values are back.") end
 end
 
--- (a step: the values it sets, eased; what it shows; what it does after)
+-- (a step's values, eased)
 local function Set(hp, mp, heal)
     local easeH = hp ~= nil and hp ~= demo.hp
     local easeP = mp ~= nil and mp ~= demo.mp
     demo.hp, demo.mp = hp or demo.hp, mp or demo.mp
     if heal ~= nil then demo.heal = heal end
-    if easeP then Shine() end
     Update(easeH or nil, easeP or nil)
     if heal ~= nil then FillHeals(demo.hpMax) end
 end
@@ -992,25 +788,23 @@ end
 local STEPS = {
     { 0, "full: two lines, the bright cap at each end, notches at 25/50/75%",
         function() Set(HP, MP, 0); Update(false, false) end },
-    { 2, "mana -40%: a pale trail where it was, easing in after; a spark on the edge",
+    { 2, "mana -40%: a pale trail where it was, easing in after",
         function() Set(nil, 600) end },
-    { 3, "casting (cost 25%): a striped ribbon drifting in at the end of the mana",
+    { 3, "casting (cost 25%): a striped band at the end of the mana, drifting in",
         function() casting.guid = true; ShowCost(250) end },
     { 2.5, "cast done: the cost taken",
         function() casting.guid = nil; ShowCost(false); Set(nil, 350) end },
-    { 1.5, "mana coming back x3: the gain flashes past the fill, a shine runs along it",
-        function() Set(nil, 400) end },
-    { 1.2, nil, function() Set(nil, 450) end },
-    { 1.2, nil, function() Set(nil, 500) end },
-    { 2, "low mana (15%): the mana line pulses",
+    { 1.5, "mana coming back: the fill easing out",
+        function() Set(nil, 500) end },
+    { 2, "low mana (15%): the mana bar pulses",
         function() Set(nil, 150) end },
-    { 3, "hit to 45% health: orange, a pale trail; a heal coming (30%): a green striped ribbon past the fill",
+    { 3, "hit to 45% health: orange, a pale trail; a heal coming (30%): a green striped band past the fill",
         function() Set(450, nil, 300) end },
-    { 3, "the heal lands: the gain flashes, the ribbon gone",
+    { 3, "the heal lands: the band gone, the fill grown",
         function() Set(750, nil, 0) end },
     { 2.5, "health 20%: red, pulsing",
         function() Set(200) end },
-    { 2.5, "casting with too little mana (cost 40% > 15%): the ribbon over the whole mana fill",
+    { 2.5, "casting with too little mana (cost 40% > 15%): the band over the whole mana fill",
         function() casting.guid = true; ShowCost(400) end },
     { 3, nil, function() DemoStop() end },
 }
@@ -1033,10 +827,33 @@ function PlayerHealth.Test(arg)
     end
     DemoStop(true)
     demo = { hp = HP, hpMax = HP, mp = MP, mpMax = MP, heal = 0 }
-    lastMana = nil
-    IF.Print("Line test: about 30 seconds. /if linetest stop to end it.")
+    IF.Print("Line test: about 25 seconds. /if linetest stop to end it.")
     DemoStep(1, run)
 end
 
 IF.AddCommand("linetest", function(args) PlayerHealth.Test(args and args[1]) end,
-    "[stop]: run the health and power lines through made-up values (trail, flash, cost, heals, low)")
+    "[stop]: run the health and power lines through made-up values (trail, cost, heals, low)")
+
+-- /if lineprobe: why the health bar shows the colour it does (secret
+-- values said as <hidden>)
+local function Said(v)
+    if Secret(v) then return "<hidden>" end
+    return tostring(v)
+end
+
+IF.AddCommand("lineprobe", function()
+    local v, m = UnitHealth("player"), UnitHealthMax("player")
+    local h = halves[2]
+    IF.Print(("Line probe: health %s / %s, percent %s, colours by %s"):format(Said(v), Said(m),
+        Said(select(2, pcall(UnitHealthPercent, "player", true))), tostring(h.how)))
+    IF.Print(("  alpha: orange %s, red %s, urgent %s"):format(Said(h.orange:GetAlpha()),
+        Said(h.red:GetAlpha()), Said(h.alarm:GetAlpha())))
+    local c = Curve(RED_POINTS)
+    if c and c.Evaluate then
+        IF.Print(("  red curve at 0 / 0.5 / 1 / 100: %s / %s / %s / %s"):format(
+            Said(select(2, pcall(c.Evaluate, c, 0))), Said(select(2, pcall(c.Evaluate, c, 0.5))),
+            Said(select(2, pcall(c.Evaluate, c, 1))), Said(select(2, pcall(c.Evaluate, c, 100)))))
+    else
+        IF.Print("  no curve")
+    end
+end, ": why the health line shows the colour it does")

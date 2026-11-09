@@ -1,6 +1,6 @@
 -- Your recent loot: only what is worth a look, each marked by its badge:
 -- an upgrade for what you wear (the green arrow), an item that starts a
--- quest (!), a recipe for your professions (a book), a find worth more at
+-- quest (!), an item a quest asks for (?), a recipe for your professions (a book), a find worth more at
 -- the auction house (a coin), a rare or better (its ring), a mount, pet
 -- or toy not learned yet (a horse), a bag that opens (a key). Anything
 -- else flies to the bags' tile and is gone. Up to four small tiles left of
@@ -78,11 +78,12 @@ local BADGES = {
     auction = "Interface\\MoneyFrame\\UI-GoldIcon",
     collect = "Interface\\Icons\\Ability_Mount_RidingHorse",
     open = "Interface\\Icons\\INV_Misc_Key_03",
+    needed = "Interface\\GossipFrame\\ActiveQuestIcon",
 }
 
 -- (the border's tint, or nil: none)
 local function BorderColor(e)
-    if e.kind == "quest" then return QUEST end
+    if e.kind == "quest" or e.kind == "needed" then return QUEST end
     if (e.quality or 1) < 2 then return nil end
     local c = BAG_ITEM_QUALITY_COLORS and BAG_ITEM_QUALITY_COLORS[e.quality]
     if type(c) == "table" and c.r then return { c.r, c.g, c.b } end
@@ -256,7 +257,8 @@ function RL.Left()
 end
 
 -- What makes an item worth a tile: "upgrade" (better than what is worn),
--- "quest" (starts a quest not yet taken or done), or nil: not shown
+-- "quest" (starts a quest not yet taken or done), "needed" (a quest in
+-- the log asks for it), or nil: not shown
 local function Done(questID)
     local log = C_QuestLog
     return log and log.IsQuestFlaggedCompleted and log.IsQuestFlaggedCompleted(questID) or false
@@ -274,6 +276,24 @@ local function StartsQuest(id)
     if not (ok and starts) then return false end
     if InLog(starts) or Done(starts) then return false end
     return not GD.QuestOpen or GD.QuestOpen(starts) and true or false
+end
+
+-- (an item a quest in the log asks for: an "item" objective naming it)
+local function NeededByQuest(id)
+    local log = C_QuestLog
+    if not (log and log.GetNumQuestLogEntries and log.GetInfo and log.GetQuestObjectives) then return false end
+    local name = ((C_Item and C_Item.GetItemInfo) or GetItemInfo)(id)
+    if type(name) ~= "string" or name == "" then return false end
+    for i = 1, log.GetNumQuestLogEntries() or 0 do
+        local info = log.GetInfo(i)
+        if info and not info.isHeader and info.questID then
+            local ok, objectives = pcall(log.GetQuestObjectives, info.questID)
+            for _, o in ipairs(ok and objectives or {}) do
+                if o.type == "item" and type(o.text) == "string" and o.text:find(name, 1, true) then return true end
+            end
+        end
+    end
+    return false
 end
 
 -- (a bag slot holding the item, newest stack last found: nil while it hasn't come)
@@ -315,6 +335,7 @@ end
 -- "rare" (blue or better), or nil: not shown, flown to the bags' tile
 local function Kind(item)
     if StartsQuest(item.id) then return "quest" end
+    if NeededByQuest(item.id) then return "needed" end
     local bag, slot, info = FindInBags(item.id)
     if not bag then return nil, true end
     local IV = IF.ItemValue
@@ -625,7 +646,7 @@ function RL.Test(arg)
     end
     -- (the rows of a loot window left of the middle; the kinds in turn,
     -- the last one for the bags' tile, whatever each item is)
-    local KINDS = { "upgrade", "quest", "recipe", "auction", "rare", "collect", "open" }
+    local KINDS = { "upgrade", "quest", "needed", "recipe", "auction", "rare", "collect", "open" }
     local x, top = UIParent:GetWidth() * 0.3, UIParent:GetHeight() * 0.6
     for i = 1, n do
         local item = items[(i - 1) % #items + 1]
@@ -648,7 +669,7 @@ end
 function RL.Demo(parent)
     local bar = GB()
     if not bar then error("the gamepad bar is not loaded") end
-    local KINDS = { "upgrade", "quest", "recipe", "auction", "rare", "collect", "open" }
+    local KINDS = { "upgrade", "quest", "needed", "recipe", "auction", "rare", "collect", "open" }
     local FALLBACK = { "Interface\\Icons\\INV_Sword_04", "Interface\\Icons\\INV_Scroll_03",
         "Interface\\Icons\\INV_Misc_Book_09", "Interface\\Icons\\INV_Misc_Gem_01",
         "Interface\\Icons\\INV_Misc_Bag_08", "Interface\\Icons\\INV_Misc_Key_03" }

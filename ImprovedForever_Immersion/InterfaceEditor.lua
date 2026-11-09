@@ -84,10 +84,15 @@ local ITEMS = {
             .. "the game's own.",
     }, Toggle("nameplates", "Nameplates", function() IN.Nameplates.Apply() end)),
     Item({
-        key = "nameplateHideBar", group = "top", section = "Nameplates", label = "Hide nameplate health bar",
-        tip = "Hides the thin health line and the level circle on the nameplates: the name alone, in the line's place. "
-            .. "Needs the nameplates on.",
-    }, Toggle("nameplateHideBar", "Hide nameplate health bar", function() IN.Nameplates.Apply() end)),
+        key = "nameplateHideBar", group = "top", section = "Nameplates", label = "Hide NPC nameplate health bar",
+        tip = "Hides the thin health line and the level circle on the nameplates of NPCs and mobs: the name "
+            .. "alone, in the line's place. Needs the nameplates on.",
+    }, Toggle("nameplateHideBar", "Hide NPC nameplate health bar", function() IN.Nameplates.Apply() end)),
+    Item({
+        key = "nameplateHideBarPlayers", group = "top", section = "Nameplates", label = "Hide player nameplate health bar",
+        tip = "The same for other players' nameplates: the name alone, without the health line and the "
+            .. "level circle. Needs the nameplates on.",
+    }, Toggle("nameplateHideBarPlayers", "Hide player nameplate health bar", function() IN.Nameplates.Apply() end)),
     Item({
         key = "nameplateFriendlyNPCs", group = "top", section = "Nameplates", label = "Friendly NPC nameplates",
         tip = "Plates over friendly NPCs (vendors, quest givers, guards) in the same look, instead of the "

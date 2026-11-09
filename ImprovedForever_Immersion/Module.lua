@@ -96,7 +96,8 @@ local DEFAULTS = {
     nameplates = true,  -- the nameplates over mobs in our look: name, health line, level (the game's hidden)
     nameplateFont = "morpheus", -- the nameplates' name font (Nameplates.lua: N.FONTS)
     nameplateNameSize = 17, -- and its size
-    nameplateHideBar = true, -- the nameplates' health line and level badge hidden: the name alone
+    nameplateHideBar = true, -- the NPCs' (and mobs') nameplate health line and level badge hidden: the name alone
+    nameplateHideBarPlayers = false, -- the same for other players' nameplates
     nameplateFriendlyNPCs = true, -- friendly NPCs get a plate too (turns the game's nameplateShowFriendlyNPCs on)
     dialogX = 0, dialogY = 0, -- the NPC subtitle's place (px right, px up)
     targetAuras = true, -- the target's debuffs (yours) and buffs as small icons under its header (TargetAuras.lua)
@@ -146,7 +147,7 @@ function IN.Settings()
     local db = IF.db
     db.plateLog = nil           -- (the nameplate probes' logs, done)
     db.plateFly = nil
-    db.npLog = nil              -- (the friendly-NPC plate probe's log, done)
+    db.npLog = nil              -- (the nameplate title probe's log, done)
     db.interface = db.interface or {}
     local settings = db.interface
     -- (the name's size default grew from 13 to 17: the old default moves up once)

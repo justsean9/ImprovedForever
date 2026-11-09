@@ -19,6 +19,8 @@ local Try, Flag, Secret = UF.Try, UF.Flag, UF.Secret
 local W, LINE_H, BADGE = 110, 4, 20
 local TRACK = { 0, 0, 0, 0.55 }
 local NAME_SIZE = 17
+local TITLE_SIZE = 12
+local TITLE_COLOR = { 0.85, 0.82, 0.7 }   -- (the NPC's job, <Warrior Trainer>: softer than the name)
 local STEP = 0.1
 local OTHER_SCALE, OTHER_ALPHA = 0.8, 0.85
 local PLATE_DROP = 34                -- (ours sits this far under the game's plate centre: closer to the head)
@@ -47,6 +49,8 @@ local function Build()
     p.name = HS.Text(p, HS.FONT, NAME_SIZE, HS.GOLD[1], HS.GOLD[2], HS.GOLD[3])
     p.name:SetPoint("BOTTOM", p, "TOP", 0, 3)
     p.name:SetWidth(W * 2.4)
+    p.title = HS.Text(p, HS.FONT, TITLE_SIZE, TITLE_COLOR[1], TITLE_COLOR[2], TITLE_COLOR[3])
+    p.title:SetWidth(W * 2.4)
     local badge = p:CreateTexture(nil, "OVERLAY", nil, 2)
     badge:SetAtlas("UI-HUD-UnitFrame-SmallCircle")
     badge:SetSize(BADGE, BADGE)
@@ -107,7 +111,7 @@ local function AuraList(p)
         layout = { elementSpacing = DEBUFF_GAP, groupSpacing = 0, elementWidth = DEBUFF_SIZE, elementHeight = DEBUFF_SIZE },
         initializeFrame = StyleDebuff,
     })
-    c:SetPoint("TOPLEFT", p, "BOTTOMLEFT", 0, p.barShown == false and -9 or -3)
+    c:SetPoint("TOPLEFT", p, "BOTTOMLEFT", 0, p.auraDrop or -3)
     c:Hide()
     p.auras = c
     return c
@@ -142,9 +146,10 @@ end
 
 -- (drawn at its current alpha and size; none left: not shown)
 local function Draw(p)
+    local a = p.alpha * (p.seen or 1)
     p:SetScale(math.max(0.01, p.scale))
-    p:SetAlpha(p.alpha)
-    p:SetShown(p.alpha > 0.01)
+    p:SetAlpha(a)
+    p:SetShown(a > 0.01)
 end
 
 -- The name's font and size, from the settings (N.FONTS: the Interface tab's
@@ -176,7 +181,47 @@ local function StyleName(p)
     local file, size = NameFont()
     if p.nameFile == file and p.nameSize == size then return end
     if not p.name:SetFont(file, size, "") then p.name:SetFont(STANDARD_TEXT_FONT, size, "") end
+    local tsize = math.max(8, math.floor(size * 0.72 + 0.5))
+    if not p.title:SetFont(file, tsize, "") then p.title:SetFont(STANDARD_TEXT_FONT, tsize, "") end
     p.nameFile, p.nameSize = file, size
+end
+
+
+-- The job under an NPC's name (<Warrior Trainer>): the game draws it itself
+-- only when it draws the name too, so it's read from the unit's tooltip, its
+-- second line (a level line has a number: not a job). A player's: the guild.
+-- (nil: none, or secret)
+local function Title(unit)
+    local ok, t = pcall(function()
+        local v
+        if Flag(UnitIsPlayer, unit) then
+            v = GetGuildInfo(unit)
+        else
+            local data = C_TooltipInfo and C_TooltipInfo.GetUnit and C_TooltipInfo.GetUnit(unit)
+            local line = data and data.lines and data.lines[2]
+            v = line and line.leftText
+            if type(v) == "string" and not Secret(v) and v:find("%d") then v = nil end
+        end
+        if Secret(v) or type(v) ~= "string" or v == "" then return nil end
+        return "<" .. v .. ">"
+    end)
+    return ok and t or nil
+end
+
+-- The name's colour: NPCs and mobs in the header's gold, other players in
+-- their class colour (white when it can't be read).
+local function NameColor(unit)
+    if not Flag(UnitIsPlayer, unit) then return HS.GOLD[1], HS.GOLD[2], HS.GOLD[3] end
+    local ok, r, g, b = pcall(function()
+        local _, class = UnitClass(unit)
+        if Secret(class) or not class then return nil end
+        local c = (C_ClassColor and C_ClassColor.GetClassColor and C_ClassColor.GetClassColor(class))
+            or RAID_CLASS_COLORS[class]
+        if not c then return nil end
+        return c.r, c.g, c.b
+    end)
+    if ok and r then return r, g, b end
+    return 1, 1, 1
 end
 
 local function Refresh(p)
@@ -187,25 +232,49 @@ local function Refresh(p)
     if Flag(UnitIsDeadOrGhost, unit) then
         p.name:SetTextColor(0.5, 0.5, 0.5)
     else
-        p.name:SetTextColor(HS.GOLD[1], HS.GOLD[2], HS.GOLD[3])
+        local r, g, b = NameColor(unit)
+        p.name:SetTextColor(r, g, b)
     end
-    -- (the health line off: the name and level alone)
-    local showBar = IN.Settings().nameplateHideBar ~= true
+    -- (the health line off, for NPCs and players apart: the name alone)
+    local set = IN.Settings()
+    local hide
+    if Flag(UnitIsPlayer, unit) then hide = set.nameplateHideBarPlayers == true
+    else hide = set.nameplateHideBar ~= false end
+    local showBar = not hide
     p.bar:SetShown(showBar)
     p.track:SetShown(showBar)
     p.badge:SetShown(showBar)
-    if p.barShown ~= showBar then
-        p.barShown = showBar
-        -- (no line: the name sits where the line was, the debuffs under it)
+    -- (the job under the name, as the game's: the guild line of an NPC)
+    if p.titleUnit ~= unit then p.titleUnit, p.titleText = unit, Title(unit) end
+    local title = p.titleText
+    local hasTitle = title ~= nil
+    p.title:SetText(title or "")
+    p.title:SetShown(hasTitle)
+    if p.barShown ~= showBar or p.hasTitle ~= hasTitle then
+        p.barShown, p.hasTitle = showBar, hasTitle
         p.name:ClearAllPoints()
+        p.title:ClearAllPoints()
         if showBar then
-            p.name:SetPoint("BOTTOM", p, "TOP", 0, 3)
+            -- (over the line: the name, the job between it and the line)
+            if hasTitle then
+                p.title:SetPoint("BOTTOM", p, "TOP", 0, 3)
+                p.name:SetPoint("BOTTOM", p.title, "TOP", 0, 1)
+            else
+                p.name:SetPoint("BOTTOM", p, "TOP", 0, 3)
+            end
         else
-            p.name:SetPoint("CENTER", p, "CENTER", 0, 0)
+            -- (no line: the name where the line was, the job under it)
+            if hasTitle then
+                p.name:SetPoint("CENTER", p, "CENTER", 0, 6)
+                p.title:SetPoint("TOP", p.name, "BOTTOM", 0, -1)
+            else
+                p.name:SetPoint("CENTER", p, "CENTER", 0, 0)
+            end
         end
+        p.auraDrop = showBar and -3 or (hasTitle and -17 or -9)
         if p.auras then
             p.auras:ClearAllPoints()
-            p.auras:SetPoint("TOPLEFT", p, "BOTTOMLEFT", 0, showBar and -3 or -9)
+            p.auras:SetPoint("TOPLEFT", p, "BOTTOMLEFT", 0, p.auraDrop)
         end
     end
     local value, max = UnitHealth(unit), UnitHealthMax(unit)
@@ -285,6 +354,9 @@ local function Add(unit)
     local p = table.remove(pool) or Build()
     a.ours = p
     p.unit = unit
+    p.game = game
+    p.seen = 1
+    p.titleUnit = nil
     p.alpha = nil
     HideGame(game, true)
     p:ClearAllPoints()
@@ -321,9 +393,20 @@ events:SetScript("OnEvent", function(_, event, unit)
     end
 end)
 
+-- Behind an object the game dims its plate (its alpha: only read, in a pcall);
+-- ours follows to nothing, ramping from OCCLUDED_LOW (gone) to OCCLUDED_HIGH
+-- (whole), instead of hanging over the wall.
+local OCCLUDED_LOW, OCCLUDED_HIGH = 0.25, 0.45
+local function Seen(game)
+    local ok, a = pcall(game.GetAlpha, game)
+    if not ok or type(a) ~= "number" or Secret(a) then return 1 end
+    return math.max(0, math.min(1, (a - OCCLUDED_LOW) / (OCCLUDED_HIGH - OCCLUDED_LOW)))
+end
+
 local function Ease(p, elapsed)
     if not p.alpha then return end
     local k = math.min(1, elapsed * FADE_SPEED)
+    p.seen = (p.seen or 1) + (Seen(p.game) - (p.seen or 1)) * k
     p.alpha = p.alpha + (p.goalAlpha - p.alpha) * k
     p.scale = p.scale + (p.goalScale - p.scale) * k
     if math.abs(p.alpha - p.goalAlpha) < 0.01 then p.alpha, p.scale = p.goalAlpha, p.goalScale end
