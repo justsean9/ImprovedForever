@@ -1,5 +1,23 @@
 # Changelog
 
+## Core 0.16.0
+
+- The Wiki with the mouse, like the spellbook: a search box and a filter button at the top right. Typing searches as you go; emptying the box goes back to the page you were on. No more Search, Filters or Close buttons along the bottom (the window's close button and Escape close it).
+- Clicking an entry in a Wiki list with the mouse works again.
+
+## Wiki 0.9.0
+
+- **Hold the middle mouse button on an item** (bags, loot window, a chat link...) to open its page, with a ring filling as you hold; a short click stays the game's. On by default: "Hold middle mouse button" in the Wiki tab.
+- Fixed: Wiki pages opening empty.
+
+## Auction 0.9.0
+
+- The auction house scene is gone: the auction window is the framed window with its side tabs (Buy, Sell, Auctions, Tasks) for everyone.
+
+## Immersion 0.9.1
+
+- The "Auction house scene" switch is gone with the scene (Auction 0.9.0).
+
 ## Minimap 0.7.1
 
 - WoW Forever's latest update stopped addons from reading the minimap, so the labels and alerts can't work for now. Instead of silently doing nothing, they say so in the chat and the Minimap tab, and come back by themselves once the game answers again.

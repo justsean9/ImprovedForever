@@ -8,7 +8,7 @@
 - **Chat**: pick a chat line and the links in it with the pad; Cross opens an item in the Wiki.
 - **Auction**: controller auction window, Buy/Sell/Owned pages, prices over time, tasks.
 - **Junk**: marks junk (quests, recipes, auction prices, class, soulbound), L2+L3 to mark, vendor Sell All Junk, Destroy panel, loot-window destroy when bags are full.
-- **Wiki**: hold R3 on an item for drops, vendors, recipes, quests, auction prices; search any item by name; fishing waters. Data from QuestieDB.
+- **Wiki**: hold R3 on an item (or the middle mouse button) for drops, vendors, recipes, quests, auction prices; search any item by name; fishing waters. Data from QuestieDB.
 - **Journal**: first-person diary of each day, per character, read as a leather book.
 - **Fishing**: fishing mode (R2 twice or double right-click), per-cast scene, stringer, Fish Collection with first-catch cinematic, camera framing; mouse fishing.
 - **Camp**: sitting by a campfire as a cutscene.
