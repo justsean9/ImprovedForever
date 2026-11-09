@@ -100,6 +100,12 @@ local ITEMS = {
             .. "choice back. Needs the nameplates on.",
     }, Toggle("nameplateFriendlyNPCs", "Friendly NPC nameplates", function() IN.Nameplates.Apply() end)),
     Item({
+        key = "nameplateHideFarNames", group = "top", section = "Nameplates", label = "Hide the game's far names",
+        tip = "Over units too far away for a nameplate the game draws their names itself, tiny, in its own "
+            .. "colours. This hides them, so only our nameplates are left. Turns the game's unit name options "
+            .. "off; off puts yours back. Needs the nameplates on.",
+    }, Toggle("nameplateHideFarNames", "Hide the game's far names", function() IN.Nameplates.Apply() end)),
+    Item({
         key = "nameplateDebuffs", group = "top", section = "Nameplates", label = "Nameplate debuffs",
         tip = "Your debuffs on a mob as small icons under its nameplate, with their time left and stacks. "
             .. "Needs the nameplates on.",

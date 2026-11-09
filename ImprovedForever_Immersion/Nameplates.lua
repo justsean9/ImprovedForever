@@ -147,7 +147,7 @@ end
 -- (drawn at its current alpha and size; none left: not shown)
 local function Draw(p)
     local a = p.alpha * (p.seen or 1)
-    p:SetScale(math.max(0.01, p.scale))
+    p:SetScale(math.max(0.01, p.scale * (p.size or 1)))
     p:SetAlpha(a)
     p:SetShown(a > 0.01)
 end
@@ -355,7 +355,7 @@ local function Add(unit)
     a.ours = p
     p.unit = unit
     p.game = game
-    p.seen = 1
+    p.seen, p.size = 1, 1
     p.titleUnit = nil
     p.alpha = nil
     HideGame(game, true)
@@ -393,25 +393,33 @@ events:SetScript("OnEvent", function(_, event, unit)
     end
 end)
 
--- Behind an object the game dims its plate (its alpha: only read, in a pcall);
--- ours follows to nothing, ramping from OCCLUDED_LOW (gone) to OCCLUDED_HIGH
--- (whole), instead of hanging over the wall.
+-- Behind an object the game dims its plate (its alpha: only read, in a pcall)
+-- but keeps its size; far away it shrinks and fades both. So ours goes out
+-- only while the game's plate is dimmed at a normal size: ramping from
+-- OCCLUDED_LOW (gone) to OCCLUDED_HIGH (whole). A far one stays ours, a
+-- little smaller (FAR_MIN at the smallest) until the game takes the plate.
 local OCCLUDED_LOW, OCCLUDED_HIGH = 0.25, 0.45
+local NEAR_SCALE, FAR_MIN = 0.57, 0.6
 local function Seen(game)
-    local ok, a = pcall(game.GetAlpha, game)
-    if not ok or type(a) ~= "number" or Secret(a) then return 1 end
-    return math.max(0, math.min(1, (a - OCCLUDED_LOW) / (OCCLUDED_HIGH - OCCLUDED_LOW)))
+    local ok, a, sc = pcall(function() return game:GetAlpha(), game:GetScale() end)
+    if not ok or type(a) ~= "number" or type(sc) ~= "number" or Secret(a) or Secret(sc) then return 1, 1 end
+    local size = math.max(FAR_MIN, math.min(1, sc / NEAR_SCALE))
+    if sc < NEAR_SCALE * 0.8 then return 1, size end
+    return math.max(0, math.min(1, (a - OCCLUDED_LOW) / (OCCLUDED_HIGH - OCCLUDED_LOW))), size
 end
 
 local function Ease(p, elapsed)
     if not p.alpha then return end
     local k = math.min(1, elapsed * FADE_SPEED)
-    p.seen = (p.seen or 1) + (Seen(p.game) - (p.seen or 1)) * k
+    local seen, size = Seen(p.game)
+    p.seen = (p.seen or 1) + (seen - (p.seen or 1)) * k
+    p.size = (p.size or 1) + (size - (p.size or 1)) * k
     p.alpha = p.alpha + (p.goalAlpha - p.alpha) * k
     p.scale = p.scale + (p.goalScale - p.scale) * k
     if math.abs(p.alpha - p.goalAlpha) < 0.01 then p.alpha, p.scale = p.goalAlpha, p.goalScale end
     Draw(p)
 end
+
 
 local since = 0
 events:SetScript("OnUpdate", function(_, elapsed)
@@ -439,7 +447,24 @@ end
 -- 0), only their name as plain text, so ours has nothing to dress. The setting
 -- turns the CVar on (remembering yours, put back when it's off).
 ---------------------------------------------------------------------------
-local CVAR = "nameplateShowFriendlyNPCs"
+-- Far away (no plate) the engine draws a unit's name itself, tiny and in the
+-- game's colours: green for NPCs, blue for players. Those can't be restyled,
+-- so the setting turns them off and only our plates are left.
+local CVARS = {
+    { "nameplateShowFriendlyNPCs", "1", function(s) return s.nameplateFriendlyNPCs ~= false end },
+    { "UnitNameNPC", "0", function(s) return s.nameplateHideFarNames ~= false end },
+    { "UnitNameFriendlyPlayerName", "0", function(s) return s.nameplateHideFarNames ~= false end },
+    { "UnitNameNonCombatCreatureName", "0", function(s) return s.nameplateHideFarNames ~= false end },
+}
+-- (the rest of the game's unit name options: one the client doesn't have reads nil and is skipped)
+for _, name in ipairs({
+    "UnitNameFriendlySpecialNPCName", "UnitNameHostleNPC", "UnitNameInteractiveNPC",
+    "UnitNameFriendlyPetName", "UnitNameFriendlyGuardianName", "UnitNameFriendlyTotemName",
+    "UnitNameFriendlyMinionName", "UnitNameEnemyPlayerName", "UnitNameEnemyPetName",
+    "UnitNameEnemyGuardianName", "UnitNameEnemyTotemName", "UnitNameEnemyMinionName",
+}) do
+    CVARS[#CVARS + 1] = { name, "0", function(s) return s.nameplateHideFarNames ~= false end }
+end
 
 function N.ApplyCVar()
     if InCombatLockdown() then
@@ -450,13 +475,20 @@ function N.ApplyCVar()
     local s = IN.Settings()
     local get = C_CVar and C_CVar.GetCVar or GetCVar
     local set = C_CVar and C_CVar.SetCVar or SetCVar
-    local want = s.nameplates ~= false and s.nameplateFriendlyNPCs ~= false
-    if want then
-        if s.cvarWas == nil then s.cvarWas = get(CVAR) or "0" end
-        if get(CVAR) ~= "1" then set(CVAR, "1") end
-    elseif s.cvarWas ~= nil then
-        set(CVAR, s.cvarWas)
-        s.cvarWas = nil
+    -- (an earlier version kept the one value as a string)
+    if type(s.cvarWas) ~= "table" then s.cvarWas = {} end
+    local on = s.nameplates ~= false
+    for _, c in ipairs(CVARS) do
+        local name, value, test = c[1], c[2], c[3]
+        local was = s.cvarWas[name]
+        if on and test(s) then
+            local now = get(name)
+            if was == nil and now ~= nil then s.cvarWas[name] = now end
+            if now ~= nil and now ~= value then pcall(set, name, value) end
+        elseif was ~= nil then
+            pcall(set, name, was)
+            s.cvarWas[name] = nil
+        end
     end
 end
 
