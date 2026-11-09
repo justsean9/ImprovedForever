@@ -579,3 +579,10 @@ function PlayerCast.Demo(kind, anchor)
 end
 
 PlayerCast.Apply = Watch
+
+-- /if casttest [cast|channel|shield|interrupt]: the line as it looks for a made-up cast, for 4 seconds
+IF.AddCommand("casttest", function(args)
+    local kind = args and args[1] or "cast"
+    PlayerCast.Demo(kind)
+    C_Timer.After(4, function() PlayerCast.Demo(nil) end)
+end, "[cast|channel|shield|interrupt]: your cast bar with a made-up cast (4 seconds)")
