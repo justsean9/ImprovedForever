@@ -580,6 +580,11 @@ for _, e in ipairs({ "LOOT_READY", "LOOT_OPENED", "LOOT_SLOT_CLEARED", "LOOT_CLO
     pcall(events.RegisterEvent, events, e)
 end
 events:SetScript("OnEvent", function(_, event, slot)
+    -- (off: the game's loot window isn't touched at all)
+    if not On() and (event == "LOOT_READY" or event == "LOOT_OPENED" or event == "LOOT_SLOT_CLEARED") then
+        watch:Hide()
+        return
+    end
     if event == "LOOT_READY" or event == "LOOT_OPENED" then
         if event == "LOOT_READY" or not next(slots) then
             wipe(places)
