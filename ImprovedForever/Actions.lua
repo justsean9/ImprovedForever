@@ -194,6 +194,34 @@ function AC.IsWindow(key)
 end
 
 -- Holds something (not "none")
+-- The action the cursor holds (a spell, item or macro picked up), or nil
+function AC.FromCursor()
+    local kind, a, _, d = GetCursorInfo()
+    if kind == "spell" then
+        local id = d or a
+        if type(id) == "number" then return "spell:" .. id end
+    elseif kind == "item" and type(a) == "number" then
+        return "item:" .. a
+    elseif kind == "macro" and a then
+        local name = GetMacroInfo(a)
+        if name then return "macro:" .. name end
+    end
+end
+
+-- An action picked up onto the cursor (one a slot can't give: a window, an emote: nothing)
+function AC.Pickup(action)
+    local kind, value = (action or ""):match("^(%a+):(.+)$")
+    if kind == "spell" then
+        local pickup = (C_Spell and C_Spell.PickupSpell) or PickupSpell
+        pickup(tonumber(value))
+    elseif kind == "item" then
+        local pickup = (C_Item and C_Item.PickupItem) or PickupItem
+        pickup(tonumber(value))
+    elseif kind == "macro" then
+        PickupMacro(value)
+    end
+end
+
 function AC.IsBound(key)
     return key ~= nil and key ~= "none"
 end

@@ -200,32 +200,7 @@ local function SetMembers()
     end
 end
 
--- The cursor's action, or nil
-local function CursorAction()
-    local kind, a, _, d = GetCursorInfo()
-    if kind == "spell" then
-        local id = d or a
-        if type(id) == "number" then return "spell:" .. id end
-    elseif kind == "item" and type(a) == "number" then
-        return "item:" .. a
-    elseif kind == "macro" and a then
-        local name = GetMacroInfo(a)
-        if name then return "macro:" .. name end
-    end
-end
-
-local function Pickup(action)
-    local kind, value = (action or ""):match("^(%a+):(.+)$")
-    if kind == "spell" then
-        local pickup = (C_Spell and C_Spell.PickupSpell) or PickupSpell
-        pickup(tonumber(value))
-    elseif kind == "item" then
-        local pickup = (C_Item and C_Item.PickupItem) or PickupItem
-        pickup(tonumber(value))
-    elseif kind == "macro" then
-        PickupMacro(value)
-    end
-end
+local CursorAction, Pickup = IF.Actions.FromCursor, IF.Actions.Pickup
 
 ---------------------------------------------------------------------------
 -- The slots' diamond, after the party cards: the gamepad bar's tiles and

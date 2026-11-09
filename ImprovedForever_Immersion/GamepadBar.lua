@@ -1245,6 +1245,59 @@ end
 -- to what it's anchored to): placed by the tile's rect, out of combat only.
 local catchers = {}
 
+-- The mouse over one of the keyboard bar's tiles
+local function BarHovered()
+    for _, c in pairs(catchers) do
+        if c:IsShown() and c:IsMouseOver() then return true end
+    end
+    return false
+end
+
+-- The keys held now as a key's prefix ("ALT-CTRL-"). Over the bar: none, whatever is held:
+-- Shift picks a spell up there (the game's pick-up key), it isn't a layer
+local function ModsHeld()
+    if BarHovered() then return "" end
+    return (IsAltKeyDown() and "ALT-" or "") .. (IsControlKeyDown() and "CTRL-" or "")
+        .. (IsShiftKeyDown() and "SHIFT-" or "")
+end
+
+-- A key's short name on a tile: "Z", "C-Z" (Alt, Ctrl, Shift: A, C, S)
+local function ShortKey(prefix, base)
+    return (prefix:gsub("(%u)%u*%-", "%1-")) .. base
+end
+
+-- The key tile i's key (the layer of the Alt / Ctrl / Shift held), or nil
+local function KeySpec(i)
+    local groups = IF.Binds and IF.Binds.KEY_GROUPS
+    local base = groups and groups[math.ceil(i / 4)][(i - 1) % 4 + 1]
+    return base and (ModsHeld() .. base)
+end
+
+-- A spell, item or macro dropped on a key tile goes on its key (the Bindings tab's keys,
+-- Override.lua), what was there coming up on the cursor as the game's slots do; one dragged
+-- off is picked up (bars locked: only with the pick-up modifier) and its key is free. Out of
+-- combat.
+local function KeyDrop(i)
+    local spec = KeySpec(i)
+    local action = IF.Actions.FromCursor()
+    if not (spec and action) or IF.InCombat() then return end
+    local had = IF.Override.KeyAction(spec)
+    IF.Override.SetKey(spec, action)
+    ClearCursor()
+    if had and had ~= action then IF.Actions.Pickup(had) end
+end
+
+local function KeyDragOff(i)
+    local spec = KeySpec(i)
+    local action = spec and IF.Override.KeyAction(spec)
+    if not action or IF.InCombat() then return end
+    local locked = GetCVarBool and GetCVarBool("lockActionBars")
+    if locked and not IsModifiedClick("PICKUPACTION") then return end
+    IF.Override.SetKey(spec, nil)
+    IF.Actions.Pickup(action)
+end
+
+
 local function Catcher(i)
     local c = catchers[i]
     if c then return c end
@@ -1260,14 +1313,47 @@ local function Catcher(i)
     c:SetAttribute("type", "click")
     c:SetAttribute("clickbutton", native)
     c:SetScript("OnEnter", function(self)
+        -- (what the player put on the tile's key: its own tooltip; else the game's slot's)
+        local spec = IF.Binds and IF.Binds.KEY_GROUPS and KeySpec(i)
+        local mine = spec and IF.Override.KeyAction(spec)
+        if mine then
+            local kind, value = mine:match("^(%a+):(.+)$")
+            GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+            local ok = false
+            if kind == "spell" then
+                ok = pcall(GameTooltip.SetSpellByID, GameTooltip, tonumber(value))
+            elseif kind == "item" then
+                ok = pcall(GameTooltip.SetItemByID, GameTooltip, tonumber(value))
+            end
+            if not ok then
+                local name = IF.ActionInfo(mine)
+                if name then GameTooltip:SetText(name) ok = true end
+            end
+            if ok then GameTooltip:Show() else GameTooltip:Hide() end
+            return
+        end
         local action = native.action
         if not action then return end
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         if pcall(GameTooltip.SetAction, GameTooltip, action) then GameTooltip:Show() end
     end)
     c:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    c:SetScript("OnDragStart", function() DragOff({ native = native }) end)
-    c:SetScript("OnReceiveDrag", function() Drop({ native = native }) end)
+    -- (a click with something on the cursor is a drop, not a press of the slot under it)
+    c:SetScript("PreClick", function(self)
+        if IF.Binds and IF.Binds.KEY_GROUPS and not InCombatLockdown() and GetCursorInfo() then
+            self:SetAttribute("type", nil)
+        end
+    end)
+    c:SetScript("PostClick", function(self)
+        if not InCombatLockdown() and self:GetAttribute("type") == nil then self:SetAttribute("type", "click") end
+    end)
+    -- (with the keyboard bar, the tile is a key's: a drop or a drag is on that key)
+    c:SetScript("OnDragStart", function()
+        if IF.Binds and IF.Binds.KEY_GROUPS then KeyDragOff(i) else DragOff({ native = native }) end
+    end)
+    c:SetScript("OnReceiveDrag", function()
+        if IF.Binds and IF.Binds.KEY_GROUPS then KeyDrop(i) else Drop({ native = native }) end
+    end)
     c:Hide()
     catchers[i] = c
     return c
@@ -1298,23 +1384,37 @@ local function PlaceCatchers(on)
     end
 end
 
--- The keys held now as a key's prefix ("ALT-CTRL-")
-local function ModsHeld()
-    return (IsAltKeyDown() and "ALT-" or "") .. (IsControlKeyDown() and "CTRL-" or "")
-        .. (IsShiftKeyDown() and "SHIFT-" or "")
-end
-
--- A key's short name on a tile: "Z", "C-Z" (Alt, Ctrl, Shift: A, C, S)
-local function ShortKey(prefix, base)
-    return (prefix:gsub("(%u)%u*%-", "%1-")) .. base
-end
-
 -- Is base one of the keys the game's slot i answers to (its ACTIONBUTTONi binding)
 local function SlotOnKey(i, base)
     for _, key in ipairs({ GetBindingKey("ACTIONBUTTON" .. i) }) do
         if key == base then return true end
     end
     return false
+end
+
+-- A stand-in for the game's button (GB.StandIn) for an action of the player's, made again when its
+-- picture changes: its spell (a macro's: the one it casts) or item, for the cooldown, cast and buff
+local standIns = {}
+local function ActionStandIn(action)
+    if not action then return nil end
+    local _, texture = IF.ActionInfo(action)
+    if not texture then return nil end
+    local stand = standIns[action]
+    if stand and stand.icon.texture == texture then return stand end
+    local kind, value = action:match("^(%a+):(.+)$")
+    local spellID, itemID
+    if kind == "spell" then
+        spellID = tonumber(value)
+    elseif kind == "item" then
+        itemID = tonumber(value)
+    elseif kind == "macro" then
+        local index = GetMacroIndexByName(value)
+        spellID = index and index > 0 and GetMacroSpell and GetMacroSpell(index) or nil
+    end
+    local getName = C_Spell and C_Spell.GetSpellName or GetSpellInfo
+    stand = GB.StandIn(texture, spellID, itemID, spellID and getName and getName(spellID) or nil)
+    standIns[action] = stand
+    return stand
 end
 
 -- The twelve keys' tiles: each says its own key (the layer of the Alt / Ctrl / Shift held)
@@ -1336,8 +1436,12 @@ local function MirrorKeys()
             end
         else
             local texture, atlas = IF.Binds.KeyPicture(prefix .. base, true)
+            local stand = ActionStandIn(IF.Override.KeyAction(prefix .. base))
             b:SetShown(true)
-            if texture ~= nil or atlas ~= nil then
+            if stand then
+                -- (an action of the player's: a stand-in for the game's button, so its cooldown, cast ring and item buff show)
+                Mirror(b, stand)
+            elseif texture ~= nil or atlas ~= nil then
                 OursTile(b, texture, atlas)
                 b.native = nil
             elseif prefix == "" and native ~= nil and native:IsVisible() and SlotOnKey(i, base) then
