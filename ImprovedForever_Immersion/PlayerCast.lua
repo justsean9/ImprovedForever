@@ -504,8 +504,28 @@ for _, e in ipairs({ "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP", "UNIT_SPELLC
     "UNIT_SPELLCAST_NOT_INTERRUPTIBLE" }) do
     events:RegisterUnitEvent(e, "player")
 end
+-- (the game's bar, when a cast ends (interrupted, failed) shown again for its own flash and
+-- text, which stops our fade: drawn at 0 again at once, not at the watcher's next pass)
+local function KeepHidden()
+    if PlayerCast.on then IF.Focus.Fade(_G.PlayerCastingBarFrame, true) end
+end
+
+IF.OnLogin(function()
+    local bar = _G.PlayerCastingBarFrame
+    if bar and bar.HookScript then bar:HookScript("OnShow", KeepHidden) end
+end)
+
+-- (and while it's shown, ours played again each frame: the game's own fade-out and flash of the bar
+-- on a cast's end would else draw it over ours)
+local keeper = CreateFrame("Frame")
+keeper:SetScript("OnUpdate", function()
+    local bar = _G.PlayerCastingBarFrame
+    if PlayerCast.on and bar and bar:IsShown() then IF.Focus.Refade(bar) end
+end)
+
 events:SetScript("OnEvent", function(_, event)
     if not PlayerCast.on then return end
+    KeepHidden()
     if event == "UNIT_SPELLCAST_INTERRUPTED" then
         if not Casting() then Interrupted() end
     elseif event == "UNIT_SPELLCAST_INTERRUPTIBLE" then
