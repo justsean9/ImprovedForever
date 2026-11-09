@@ -311,10 +311,37 @@ end
 local GROUP_GAP = 12            -- (between the buffs and the debuffs)
 local DEBUFF_MAX = 8
 
+-- A buff's or debuff's tooltip over the mouse: the game's container hands its buttons no tooltip, so the
+-- aura is found by its icon among yours (nothing in a fight, when the auras' details are secret)
+local function AuraTip(self)
+    local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
+    if not (get and self.tipIcon) then return end
+    local texture = self.tipIcon:GetTexture()
+    if texture == nil or Secret(texture) then return end
+    local filter = self.harmful and "HARMFUL" or "HELPFUL"
+    for i = 1, 40 do
+        local ok, data = pcall(get, "player", i, filter)
+        if not ok or type(data) ~= "table" then break end
+        if not Secret(data.icon) and data.icon == texture then
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            if pcall(GameTooltip.SetUnitAura, GameTooltip, "player", i, filter) then
+                GameTooltip:Show()
+            else
+                GameTooltip:Hide()
+            end
+            return
+        end
+    end
+end
+
 local function StyleButton(b, harmful, size)
     b:SetSize(size, size)
     local icon = b:CreateTexture(nil, "ARTWORK")
     icon:SetAllPoints()
+    b.tipIcon, b.harmful = icon, harmful
+    b:EnableMouse(true)
+    b:SetScript("OnEnter", AuraTip)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
     local time = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     time:SetPoint("BOTTOM", b, "TOP", 0, 1)
     local count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
