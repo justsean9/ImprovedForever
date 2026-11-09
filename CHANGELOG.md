@@ -1,5 +1,9 @@
 # Changelog
 
+## Minimap 0.7.1
+
+- WoW Forever's latest update stopped addons from reading the minimap, so the labels and alerts can't work for now. Instead of silently doing nothing, they say so in the chat and the Minimap tab, and come back by themselves once the game answers again.
+
 ## Core 0.15.0
 
 - Escape (and the pad's B) no longer gets blocked by Improved Forever: our windows close on Escape their own way, without tainting the game's.
