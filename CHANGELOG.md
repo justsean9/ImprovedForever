@@ -2,6 +2,7 @@
 
 ## Immersion 0.5.1
 
+- A click on the free bag slots' tile opens the bags, and the menu's "Bag Slots" entry is called "Bags".
 - The target's cast bar shows the spell's icon in a diamond, as the target's avatar. `/if casttest` shows your own cast bar with a made-up cast.
 - `/if bufftest` shows made-up buffs and debuffs in the buff row (60 seconds, with tooltips), to try its look without a real aura on you, and says in the chat what the row's real buttons hold.
 - The target's buffs and debuffs under the header are cleared and filled again when you change target (they kept the earlier target's icons).

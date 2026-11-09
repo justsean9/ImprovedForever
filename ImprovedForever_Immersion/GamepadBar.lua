@@ -1399,7 +1399,7 @@ local function MenuItems()
     end
     local bags = _G.MainMenuBarBackpackButton or _G.BagsBarBackpackButton
     if bags then
-        items[#items + 1] = { native = bags, label = _G.BAGSLOTTEXT or "Bags", command = "OPENALLBAGS" }
+        items[#items + 1] = { native = bags, label = "Bags", command = "OPENALLBAGS" }
     end
     -- (ours: the Improved Forever panel, as /if and the touchpad open it; run after the click)
     if IF.Menu and IF.Menu.Toggle then
@@ -1643,9 +1643,50 @@ local bagTile = Supply(function()
     return free and "Interface\\Icons\\INV_Misc_Bag_08", free
 end, function()
     local free, total = BagSpace()
-    GameTooltip:SetText(BAGSLOTTEXT or "Bags")
+    GameTooltip:SetText("Bags")
     GameTooltip:AddLine(("%d / %d free"):format(free or 0, total or 0), 1, 1, 1)
 end)
+
+-- A click on the bags' tile opens them: a secure button of ours over the tile clicks the game's own bag
+-- button (as the menu's rows do, so no addon code opens a window), placed by the tile's rect, out of combat
+local bagCatcher
+local function PlaceBagCatcher()
+    if InCombatLockdown() then return end
+    local native = _G.MainMenuBarBackpackButton or _G.BagsBarBackpackButton
+    if not native then return end
+    if not bagCatcher then
+        bagCatcher = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
+        bagCatcher:SetFrameStrata("LOW")
+        bagCatcher:SetFrameLevel(60)
+        bagCatcher:RegisterForClicks("AnyUp")
+        bagCatcher:SetAttribute("useOnKeyDown", false)
+        bagCatcher:SetAttribute("type", "click")
+        bagCatcher:SetAttribute("clickbutton", native)
+        bagCatcher:SetScript("OnEnter", function()
+            GameTooltip:SetOwner(bagTile, "ANCHOR_TOP")
+            bagTile.tip()
+            GameTooltip:Show()
+        end)
+        bagCatcher:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        bagCatcher:Hide()
+    end
+    local x, y = bagTile:GetCenter()
+    local shownTile = bagTile:IsShown() and holder:IsShown() and x and y
+    if shownTile then
+        local k = bagTile:GetEffectiveScale() / UIParent:GetEffectiveScale()
+        local size = bagTile.d.side * k
+        if bagCatcher.x ~= x or bagCatcher.y ~= y or bagCatcher.size ~= size then
+            bagCatcher.x, bagCatcher.y, bagCatcher.size = x, y, size
+            bagCatcher:ClearAllPoints()
+            bagCatcher:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x * k, y * k)
+            bagCatcher:SetSize(size, size)
+        end
+        if not bagCatcher:IsShown() then bagCatcher:Show() end
+    elseif bagCatcher:IsShown() then
+        bagCatcher:Hide()
+    end
+end
+IN.Watcher("bag tile click", 0.5, PlaceBagCatcher)
 
 local _, playerClass = UnitClass("player")
 if playerClass == "HUNTER" then
