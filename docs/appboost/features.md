@@ -3,7 +3,7 @@
 - **Core**: button glyphs, configuration panel (double-tap Menu or `/if`), Bindings tab (controller press and keyboard/mouse press per binding), bag clean-up, touchpad corner actions (incl. double-tap), shared item verdict, bundled game data, a General switch that leaves the controller's buttons to the game.
 - **Wheel**: radial wheels on R3 combos (defaults: L1 Quest Items, L2 Emotes, R1 Consumables); built-in wheels Quest Items (items a quest has you use or that start one), Consumables (food, drink, potions, bandages, scrolls, elixirs, flasks), Emotes, Group (pick a party or raid member, then cast a helpful spell on them, usable in combat), Improved Forever (our windows) and Camping (with the Camp module); custom wheels (spells, items, macros, emotes, chat phrases, totems, trinket swap); recent action slot. Source: ImprovedForever_Wheel code (Wheel.lua, MyWheels.lua).
 - **Vibration**: vibration on game events and spell casts, per-action patterns.
-- **Minimap**: names beside minimap dots (herbs, ore, quests, NPCs, party), gathering alerts.
+- **Minimap**: names beside minimap dots (herbs, ore, quests, NPCs, party), gathering alerts. Paused since WoW Forever's November 2026 update stopped addons reading the minimap (0.7.1 says so in game); back by itself once the game answers again.
 - **Map**: peek map.
 - **Chat**: pick a chat line and the links in it with the pad; Cross opens an item in the Wiki.
 - **Auction**: controller auction window, Buy/Sell/Owned pages, prices over time, tasks.
