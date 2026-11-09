@@ -1,5 +1,9 @@
 # Changelog
 
+## Immersion 0.5.1
+
+- The cast bar can be moved right / up in the Immersion tab (under Cast bar), as the header and the player frame can.
+
 ## Camp 0.1.1
 
 - **Text speed** setting (Slow, Normal, Fast) for the scene's lines: how fast the words come and how long each line stays.

@@ -98,6 +98,7 @@ local DEFAULTS = {
     nameplateNameSize = 13, -- and its size
     dialogX = 0, dialogY = 0, -- the NPC subtitle's place (px right, px up)
     targetAuras = true, -- the target's debuffs (yours) and buffs as small icons under its header (TargetAuras.lua)
+    castX = 0, castY = 0, -- the cast bar's place (px right, px up)
     gcd = false,        -- the global cooldown's swipe on the gamepad bar's tiles
     playerX = 0, playerY = 0, playerScale = 100, -- the player frame's place (px right, px up) and size (%)
     headerX = 0, headerY = 0, -- the header's (target, banners, quest arrow) place, px right / up

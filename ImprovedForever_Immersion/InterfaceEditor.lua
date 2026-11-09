@@ -268,6 +268,32 @@ local ITEMS = {
             .. "cast, green channel, grey when it can't be interrupted, red when cut. Edit Mode shows the "
             .. "game's bar.",
     }, Toggle("castBar", "Cast bar", function() IN.PlayerCast.Apply() end)),
+    {
+        key = "castX", group = "body", section = "Cast bar", label = "Cast bar: right",
+        tip = "Moves your cast bar to the right (left with a minus), in pixels.",
+        slider = {
+            min = -900, max = 900, step = 10,
+            get = function() return IN.Settings().castX end,
+            set = function(n)
+                IN.Settings().castX = n
+                IN.PlayerCast.Place()
+            end,
+            format = function(n) return tostring(n) end,
+        },
+    },
+    {
+        key = "castY", group = "body", section = "Cast bar", label = "Cast bar: up",
+        tip = "Moves your cast bar up (down with a minus), in pixels.",
+        slider = {
+            min = -200, max = 700, step = 10,
+            get = function() return IN.Settings().castY end,
+            set = function(n)
+                IN.Settings().castY = n
+                IN.PlayerCast.Place()
+            end,
+            format = function(n) return tostring(n) end,
+        },
+    },
     Item({
         key = "npcDialog", group = "body", section = "NPC dialog", label = "NPC dialog as subtitles",
         tip = "NPC talk (greetings, quests, gossip) as subtitles low in the middle, in place of the game's "

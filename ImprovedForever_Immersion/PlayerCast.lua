@@ -546,12 +546,21 @@ local DEMOS = {
     interrupt = { "cast", "Frostbolt", 1500, false, { "Frostbolt", 135846, 116 } },
 }
 
+-- The line at its place: the default one plus the player's offset (the Immersion tab's sliders: px
+-- right, px up)
+function PlayerCast.Place()
+    local s = IF.db and IN.Settings()
+    line:ClearAllPoints()
+    line:SetPoint("BOTTOM", UIParent, "BOTTOM", s and s.castX or 0, LINE_Y + (s and s.castY or 0))
+end
+IF.OnLogin(PlayerCast.Place)
+
 function PlayerCast.Demo(kind, anchor)
     local d = kind and DEMOS[kind]
     line:ClearAllPoints()
     if not d then
         demoCast = nil
-        line:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, LINE_Y)
+        PlayerCast.Place()
         Watch()
         return
     end
