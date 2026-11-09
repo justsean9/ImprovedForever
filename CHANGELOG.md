@@ -1,6 +1,16 @@
 # Changelog
 
-## Immersion 0.5.1
+## Core 0.14.0
+
+- **Keyboard drawing in the Bindings tab** (with Immersion): with the mouse and keyboard in hand (or the Gamepad UI off), twelve keys (1 2 3 4, Z X C V, Q E R F) are drawn in three crosses beside the list. A click on a key binds the card picked there, a right-click clears it; Alt, Ctrl and Shift show their layer.
+
+## Camp 0.1.2
+
+- **Exit** no longer triggers the "ForceQuit" blocked-action error: it clicks the game's quit button through a secure button.
+
+## Immersion 0.6.0
+
+- The keyboard and mouse bar's twelve tiles say their own key and show what it runs, for the layer of the Alt / Ctrl / Shift you hold.
 
 - The action bar is always diamonds: the "Action bar style" setting (Squares, Circles) is gone.
 - A click on the free bag slots' tile opens the bags, and the menu's "Bag Slots" entry is called "Bags".
@@ -69,7 +79,7 @@
 - Recent loot waits for the end of combat to refresh.
 - Double-tap the touchpad corners works on the recent loot tiles.
 
-## Wheel 0.11.1
+## Wheel 0.12.0
 
 - The wheel's size is set in a "Settings" entry at the bottom of the Wheels list (D-pad left / right, or the - and + buttons with the mouse), not in a Wheel options tab of its own.
 - The wheels' text (the radial menus, the editor) uses the game's own font on a Russian, Korean or Chinese client, so item and spell names show their letters instead of empty squares.
