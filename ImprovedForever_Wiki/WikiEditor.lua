@@ -39,6 +39,13 @@ local ITEMS = {
         end,
     }, OnOff(function() return S().enabled end, function(on) S().enabled = on end, "Wiki")),
     Item({
+        key = "mouseHold", group = "wiki", label = "Hold middle mouse button",
+        tip = "With the mouse and keyboard: the middle mouse button held on an item (in the bags, the loot window,"
+            .. " a chat link...) opens its page, a ring filling as it's held. A short click stays the game's."
+            .. " Alt + left click (the Bindings tab: Misc) opens it too.",
+    }, OnOff(function() return S().mouseHold ~= false end, function(on) S().mouseHold = on end,
+        "Hold middle mouse button")),
+    Item({
         key = "questie", group = "sources", label = "QuestieDB",
         tip = "Drops, vendors and quests come from QuestieDB's data (by the Questie team): the QuestieDB addon when"
             .. " installed, else the copy that comes with this addon.",

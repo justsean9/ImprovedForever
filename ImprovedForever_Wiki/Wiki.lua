@@ -1,6 +1,6 @@
 -- Wiki: everything known about an item, as a page of a book. R3 held on
 -- an item (the bags, the loot window: watched, never bound; the auction
--- window: its own R3, AuctionBuy.lua) opens its page (WikiPage.lua).
+-- window: its own R3, AuctionBuyClassic.lua) opens its page (WikiPage.lua).
 -- This file: what is known (the sources below), what is focused, the hold.
 -- Drops, vendors, quests and recipes come from the core (GameData.lua:
 -- QuestieDB when installed, else our copy of its Forever data; the game's
@@ -43,6 +43,7 @@ function LB.Settings()
     local s = IF.db.wiki or {}
     IF.db.wiki = s
     if s.enabled == nil then s.enabled = true end
+    if s.mouseHold == nil then s.mouseHold = true end
     return s
 end
 
@@ -958,14 +959,16 @@ function LB.HoldShow(p, anchor)
         holdIcon:SetPoint("CENTER", UIParent, "CENTER", 0, -80)
     end
     holdIcon:SetProgress(p)
+    -- (R3's glyph for the pad; the ring alone for the mouse's middle button)
+    holdIcon.icon:SetShown(IF.Input.Pad())
     holdIcon:Show()
-    if IF.Vibe then IF.Vibe.Hold(p) end
+    if IF.Vibe and IF.Input.Pad() then IF.Vibe.Hold(p) end
 end
 
 function LB.HoldHide(done)
     if not holdIcon:IsShown() then return end
     holdIcon:Hide()
-    if IF.Vibe then
+    if IF.Vibe and IF.Input.Pad() then
         if done then IF.Vibe.Confirm() else IF.Vibe.Hold(nil) end
     end
 end
@@ -1079,6 +1082,39 @@ local function OpenFromMouse(item)
     LB.Open(item.link, MouseOrigin(item))
 end
 
+-- With the mouse and keyboard: the middle mouse button held on an item (the
+-- mouseHold setting, on by default) opens its page, the ring filling as R3's
+-- hold does. Watched, never bound: the button keeps what the game or you gave it.
+-- state: nil idle, "off" pressed away from an item (ignored till let go),
+-- "holding", "done" (opened: nothing more till let go)
+local mouseHold = {}
+local mouseWatch = CreateFrame("Frame")
+mouseWatch:SetScript("OnUpdate", function()
+    local s = LB.Settings()
+    local down = s.enabled and s.mouseHold ~= false and not IF.Input.Pad() and not IF.InCombat()
+        and IsMouseButtonDown and IsMouseButtonDown("MiddleButton")
+    if not down then
+        if mouseHold.state == "holding" then LB.HoldHide(false) end
+        mouseHold.state, mouseHold.item, mouseHold.start = nil, nil, nil
+        return
+    end
+    if not mouseHold.state then
+        local item = IF.Input.Hovered()
+        if item and item.link and ItemID(item.link) then
+            mouseHold.state, mouseHold.item, mouseHold.start = "holding", item, GetTime()
+        else
+            mouseHold.state = "off"
+        end
+    end
+    if mouseHold.state ~= "holding" then return end
+    local p = LB.HoldProgress(mouseHold.start)
+    if not p then return end
+    if p < 1 then return LB.HoldShow(p, mouseHold.item.owner) end
+    mouseHold.state = "done"
+    LB.HoldHide(true)
+    OpenFromMouse(mouseHold.item)
+end)
+
 -- Its binding, on the Bindings tab (Misc): a button held on an item, and a
 -- click on one (Alt + left click) or a key on the item under the mouse
 local B = IF.Binds
@@ -1087,8 +1123,9 @@ B.Add({
     icon = IF.TEX .. "ic_mod_wiki", context = "bags", order = 35,
     desc = "Held on an item: everything about it",
     tip = "Held on an item in the bags, the loot window or another window with the controller: its"
-        .. " Wiki page. With the mouse: a click on an item (Alt + left click), or a key on the item"
-        .. " under the mouse. Watched, not taken: the button keeps its own action.",
+        .. " Wiki page. With the mouse: the middle button held on an item (the Wiki tab), a click on one"
+        .. " (Alt + left click), or a key on the item under the mouse. Watched, not taken: the button keeps"
+        .. " its own action.",
     accepts = B.Single,
     specs = function() return B.One(LB.Key()) end,
     set = function(spec) LB.Settings().holdKey = spec or false end,
