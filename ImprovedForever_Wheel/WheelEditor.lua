@@ -274,6 +274,27 @@ function W:Build(parent)
         W:ToggleHidden(W:Current())
     end)
     f.hideButton:Hide()
+    -- The wheel's size on the screen (a percent, 50 to 150: Ring.lua's IF.ApplyRingScale), under the wheel:
+    -- a button each side of it, for the mouse (the pad's buttons are all taken on this page)
+    f.sizeRow = K.NewFrame("Frame", nil, f)
+    f.sizeRow:SetSize(260, 30)
+    f.sizeRow:SetPoint("TOP", zone, "BOTTOM", 0, -92)
+    f.sizeLabel = K.ChatText(f.sizeRow, 14, KC.grey)
+    f.sizeLabel:SetPoint("CENTER", f.sizeRow, "CENTER", 0, 0)
+    local function Step(delta)
+        if IF.InCombat() then return end
+        local size = math.max(50, math.min(150, (tonumber(IF.db.ringScale) or 100) + delta))
+        IF.db.ringScale = size
+        IF.ApplyRingScale()
+        menu.Render()
+    end
+    for _, def in ipairs({ { "LEFT", "-", -5 }, { "RIGHT", "+", 5 } }) do
+        local b = K.Button(f.sizeRow, 14)
+        b:SetSize(34, 28)
+        b:SetPoint(def[1], f.sizeRow, def[1], 0, 0)
+        b.label:SetText(def[2])
+        b:SetScript("OnClick", function() Step(def[3]) end)
+    end
 
     -- The name typed in a box over the wheel (a physical keyboard)
     local veil = K.NewFrame("Frame", nil, zone)
@@ -1077,6 +1098,8 @@ function W:Render()
     -- (only with the game's gamepad mode off: on the pad, Square)
     f.hideButton:SetShown(not isNew and not IF.Input.PadEnabled() and self.zone == nil)
     if not isNew then f.hideButton.label:SetText(wheel.hidden and "Show wheel" or "Hide wheel") end
+    f.sizeRow:SetShown(self.zone == nil)
+    f.sizeLabel:SetText("Wheel size: " .. (tonumber(IF.db.ringScale) or 100) .. "%")
     -- The box over the wheel: naming
     f.veil:SetShown(self.zone == "rename")
     self.box:SetShown(self.zone == "rename")
