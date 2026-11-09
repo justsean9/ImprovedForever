@@ -1,4 +1,4 @@
--- The auction house window's Auctions tab (AuctionBuy.lua's window): the
+-- The auction house window's Auctions tab (AuctionBuyClassic.lua's window): the
 -- player's own auctions, each with what it asks, how long it has left and
 -- whether it is still the lowest (Auction.lua's prices: "Undercut" when
 -- someone asks less), sold ones first (their money waits in the mail).
@@ -6,12 +6,8 @@
 -- held (the row says what cancelling costs; the deposit is lost), and once full letting go
 -- cancels (the server wants a hardware event: the release is one).
 -- Triangle looks again; the picked one's tooltip beside the window.
--- The classic look (the framed window, its side tabs, dark panels and card
--- rows), without the Immersion module or with its "Auction house scene"
--- switch off; else AuctionOwned.lua's scene runs instead. Only one of the two
--- loads (IF.auctionScene, Module.lua).
+-- (the framed window, its side tabs, dark panels and card rows)
 local IF = ImprovedForever
-if IF.auctionScene then return end
 
 local K = IF.ConfigKit
 local KC = K.C
@@ -150,7 +146,7 @@ function OW.Build(parent)
         top = math.max(1, math.min(math.max(1, #auctions - #rows + 1), top + dir))
         BY.Render()
     end)
-    -- "Hold to Cancel", at the bottom (AuctionBuy.lua's hold box; held
+    -- "Hold to Cancel", at the bottom (AuctionBuyClassic.lua's hold box; held
     -- down with the mouse too)
     f.hold = BY.HoldBox(box)
     f.hold:SetPoint("BOTTOMLEFT", 8, 8)

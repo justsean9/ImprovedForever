@@ -343,15 +343,6 @@ local ITEMS = {
             format = function(n) return tostring(n) end,
         },
     },
-    Item({
-        key = "auctionScene", group = "body", section = "Auction house", label = "Auction house scene",
-        tip = "With the Auction module, the auction house as a scene in this look: no window frame, the "
-            .. "world dimmed, the HUD faded, items as a grid. Off, its classic window. Changes after a "
-            .. "/reload.",
-    }, Toggle("auctionScene", "Auction house scene", function()
-        IF.Print("Auction house scene " .. (IN.Settings().auctionScene and "on" or "off")
-            .. ": it changes after a /reload.")
-    end)),
 }
 
 local GROUPS = {

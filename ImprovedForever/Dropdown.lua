@@ -1,5 +1,5 @@
 -- A dropdown of choices over a window of ours, as the auction window's
--- filters (AuctionBuy.lua) and Improved Quest Tracker's: the game's own
+-- filters (AuctionBuyClassic.lua) and Improved Quest Tracker's: the game's own
 -- Menu look (its background, titles, radio and check ticks, dividers), a
 -- hint along its bottom. Its sections in columns when they don't fit one.
 -- The window it's in passes the pad's presses on (menu:Press: the D-pad

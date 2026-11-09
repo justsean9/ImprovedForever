@@ -1,4 +1,4 @@
--- The auction house window's Sell tab (AuctionBuy.lua's window): down the
+-- The auction house window's Sell tab (AuctionBuyClassic.lua's window): down the
 -- left everything in the bags that can be sold, sorted for profit:
 --   Sell here: worth clearly more at the auction house (its usual price,
 --     after the cut) than a vendor pays;
@@ -19,12 +19,8 @@
 -- held, and once full letting go posts (posting wants a hardware event: the
 -- release is one; a timer isn't). A price the server warns about: asked in
 -- a popup (AuctionConfirm.lua).
--- The classic look (the framed window, its side tabs, dark panels and card
--- rows), without the Immersion module or with its "Auction house scene"
--- switch off; else AuctionSellTab.lua's scene runs instead. Only one of the two
--- loads (IF.auctionScene, Module.lua).
+-- (the framed window, its side tabs, dark panels and card rows)
 local IF = ImprovedForever
-if IF.auctionScene then return end
 
 local K = IF.ConfigKit
 local KC = K.C
@@ -472,7 +468,7 @@ function ST.Build(parent)
     left.vendorOnly:SetWidth(LEFT_W - 40)
     left.vendorOnly:SetJustifyH("CENTER")
     -- The receipt
-    -- The hold status, at the bottom (AuctionBuy.lua's hold box)
+    -- The hold status, at the bottom (AuctionBuyClassic.lua's hold box)
     local hold = BY.HoldBox(left)
     hold:SetPoint("BOTTOMLEFT", 14, 12)
     hold:SetPoint("BOTTOMRIGHT", -14, 12)

@@ -1,5 +1,5 @@
 -- The windows' look, as the auction window's (ImprovedForever_Auction's
--- AuctionBuy.lua) and the configuration panel's (Menu.lua) share it: the
+-- AuctionBuyClassic.lua) and the configuration panel's (Menu.lua) share it: the
 -- game's flat panel with its title, pages picked with the game's side tabs
 -- down its right (the right stick's glyph above them), a list down the left
 -- in a dark panel, rows lit with the card stroke in the gamepad's focus

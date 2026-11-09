@@ -16,15 +16,10 @@ Module.lua
 Auction.lua
 AuctionChart.lua
 AuctionConfirm.lua
-AuctionScene.lua
-AuctionBuy.lua
 AuctionBuyClassic.lua
-AuctionSellTab.lua
 AuctionSellClassic.lua
-AuctionOwned.lua
 AuctionOwnedClassic.lua
 Tasks.lua
-AuctionTasks.lua
 AuctionTasksClassic.lua
 TaskCraft.lua
 VendorTasks.lua

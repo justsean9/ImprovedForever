@@ -2,7 +2,7 @@
 -- is; the game's window hidden behind it), used with the pad. Its pages
 -- are tabs down its right, as the character window's (the right stick
 -- up / down):
--- Buy (this file), Sell (AuctionSellTab.lua), Auctions (AuctionOwned.lua).
+-- Buy (this file), Sell (AuctionSellClassic.lua), Auctions (AuctionOwnedClassic.lua).
 -- Buy: three levels of category (the game's own, AuctionCategories): the
 -- main ones down the left (the left stick up / down), the second along
 -- the top (L1 / R1), the third under it (L2 / R2), "All" first in each.
@@ -20,12 +20,8 @@
 -- change them); Circle comes back to the list, and from it closes the
 -- auction house. R3 (a click) shows / hides the tooltips (with what is
 -- worn in the item's place beside them).
--- The classic look (the framed window, its side tabs, dark panels and card
--- rows), without the Immersion module or with its "Auction house scene"
--- switch off; else AuctionBuy.lua's scene runs instead. Only one of the two
--- loads (IF.auctionScene, Module.lua).
+-- (the framed window, its side tabs, dark panels and card rows)
 local IF = ImprovedForever
-if IF.auctionScene then return end
 
 local K = IF.ConfigKit
 local KC = K.C
@@ -95,8 +91,8 @@ BY.window = win
 local titleText = win.titleText
 
 -- The pages, one at a time, picked with the tabs down the window's right
--- (the right stick up / down): Buy (this file's), Sell (AuctionSellTab.lua), Auctions
--- (AuctionOwned.lua). A page of another file: BY.AddPage(page), page = {
+-- (the right stick up / down): Buy (this file's), Sell (AuctionSellClassic.lua), Auctions
+-- (AuctionOwnedClassic.lua). A page of another file: BY.AddPage(page), page = {
 -- key, label, icon, Build(parent) -> frame, Show(), Hide(), Render(),
 -- Press(name, fast) -> handled (Circle unhandled: the auction house
 -- closes), Hints() -> the legend's text }.

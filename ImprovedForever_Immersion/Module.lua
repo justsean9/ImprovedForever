@@ -128,7 +128,6 @@ local DEFAULTS = {
     recentLootKey = false, -- the binding's controller press (RecentLoot.lua)
     tourDone = false,   -- the first-time tour has been shown (Onboarding.lua)
     partyPad = false,   -- L1 ours: + the D-pad picks a party spell, + a face button casts it on party 1 to 4 (an experiment)
-    auctionScene = true, -- the Auction module's window as a scene in our look (read as it loads: after a reload)
 }
 
 -- A watcher: fn() every `every` seconds. One that errors stops, said once
@@ -171,6 +170,7 @@ function IN.Settings()
     -- timelines' bar test's log too)
     settings.chat, settings.auras, settings.camp = nil, nil, nil
     settings.padStyle = nil          -- (the action bar is only diamonds now)
+    settings.auctionScene = nil      -- (the auction house scene is gone: its classic window only)
     db.timelineBar = nil
     db.hudLog = nil
     -- (the breath probes' logs)

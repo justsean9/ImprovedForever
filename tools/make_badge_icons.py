@@ -1,5 +1,5 @@
 """The auction window's badge icons: flat white glyphs to sit inside the
-small coloured pills (AuctionBuy.lua's badges), tinted by nothing (white on
+small coloured pills (AuctionBuyClassic.lua's badges), tinted by nothing (white on
 the pill's colour):
   ic_badge_up      an upgrade: a bold arrow pointing up
   ic_badge_price   a price: a tag with its hole

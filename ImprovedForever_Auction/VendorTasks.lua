@@ -3,12 +3,12 @@
 -- legend on Triangle (free there; watched, not taken: a frame of ours in
 -- the game's prompt template after its last prompt). Triangle opens a
 -- panel beside the window that takes the pad, laid out as the auction
--- house's Tasks tab (AuctionTasks.lua): the tasks down the left (its own
+-- house's Tasks tab (AuctionTasksClassic.lua): the tasks down the left (its own
 -- list, IF.TaskList: "All tasks", each task, the ready ones), on the right
 -- what the picked one (or all) still needs that this vendor sells, how
 -- many and what they cost here. The D-pad: left / right the column, up /
 -- down the pick in it. Cross held buys the picked item, Triangle held all
--- of them (a "Hold to Buy" bar, AuctionBuy.lua's; full, letting go buys),
+-- of them (a "Hold to Buy" bar, AuctionBuyClassic.lua's; full, letting go buys),
 -- Circle closes.
 local IF = ImprovedForever
 

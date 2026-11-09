@@ -1,7 +1,7 @@
 -- Upgrades, adapted from Easy Controller - Forever's "better items"
 -- (moust4ki, MIT License, see LICENSE-EasyController.md): an item better
 -- than what is equipped in its slot gets the game's green arrow: on the
--- bag buttons, and in the Buy window (AuctionBuy.lua). Better: a higher
+-- bag buttons, and in the Buy window (AuctionBuyClassic.lua). Better: a higher
 -- score from the item's stats (damage per second, strength, agility,
 -- stamina, intellect, spirit, armor, attack and spell power), weighed for
 -- the class, and for a hybrid by the talent tree with the most points

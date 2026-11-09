@@ -1,4 +1,4 @@
--- The auction house window's Tasks tab (AuctionBuy.lua's window): three
+-- The auction house window's Tasks tab (AuctionBuyClassic.lua's window): three
 -- columns.
 --   Left, the tasks (IF.TaskList below, shared with the vendor's Tasks,
 --     VendorTasks.lua): "All tasks", each task still getting its reagents,
@@ -12,12 +12,8 @@
 -- The left stick works the lists: left / right the column (tasks, items),
 -- up / down the pick in it; the D-pad and the buttons work the item's
 -- screen. Circle closes the auction house.
--- The classic look (the framed window, its side tabs, dark panels and card
--- rows), without the Immersion module or with its "Auction house scene"
--- switch off; else AuctionTasks.lua's scene runs instead. Only one of the two
--- loads (IF.auctionScene, Module.lua).
+-- (the framed window, its side tabs, dark panels and card rows)
 local IF = ImprovedForever
-if IF.auctionScene then return end
 
 local K = IF.ConfigKit
 local KC = K.C

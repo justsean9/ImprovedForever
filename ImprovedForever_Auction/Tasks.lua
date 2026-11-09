@@ -5,7 +5,7 @@
 -- Kept per character (ImprovedForeverCharDB.tasks). Shown in a Tasks
 -- panel on top of the objective tracker, in its look (below). A craft of
 -- the recipe counts down its task; done, it goes. The auction house's
--- Tasks tab (AuctionTasks.lua) and the vendor's (VendorTasks.lua) buy what
+-- Tasks tab (AuctionTasksClassic.lua) and the vendor's (VendorTasks.lua) buy what
 -- is missing.
 local IF = ImprovedForever
 

@@ -1,7 +1,7 @@
 -- The Auction tab, a tab of settings (IF.SettingsPage, SettingsPage.lua):
 -- the auction window on top (off: every auction feature off), the price
 -- scans and what is kept of them, selling (the price it starts at, the
--- duration), what uses the prices. Auction.lua and AuctionBuy.lua (and its
+-- duration), what uses the prices. Auction.lua and AuctionBuyClassic.lua (and its
 -- tabs) do the work.
 local IF = ImprovedForever
 
