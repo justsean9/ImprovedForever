@@ -117,6 +117,12 @@ local ITEMS = {
             .. "Needs the nameplates on.",
     }, Toggle("nameplateDebuffs", "Nameplate debuffs", function() IN.Nameplates.Apply() end)),
     Item({
+        key = "nameplateCast", group = "top", section = "Nameplates", label = "Nameplate cast bars",
+        tip = "What a mob or player casts as a thin bar under its nameplate, with the spell's name and icon: "
+            .. "gold for a cast, green draining for a channel, grey when it can't be interrupted, red when it "
+            .. "is. Needs the nameplates on.",
+    }, Toggle("nameplateCast", "Nameplate cast bars", function() IN.Nameplates.Apply() end)),
+    Item({
         key = "nameplateFont", group = "top", section = "Nameplates", label = "Nameplate name font",
         tip = "The font of the names over mobs: Morpheus (the default), Friz Quadrata, Arial Narrow or Skurri. "
             .. "A Russian, Korean or Chinese client always uses the game's own font, which has their letters.",

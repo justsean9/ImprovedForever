@@ -26,6 +26,21 @@ local OTHER_SCALE, OTHER_ALPHA = 0.8, 0.85
 local BAR_GAP = 7                    -- (between the health line and what's over it)
 local PLATE_DROP = 34                -- (ours sits this far under the game's plate centre: closer to the head)
 local FADE_SPEED = 8                    -- (how fast alpha and size ease)
+-- (the cast bar under the line: its height, the gap over it, its spell name's size; the room it
+-- takes, the debuffs going under it while it shows)
+local CAST_H, CAST_GAP, CAST_TEXT = 4, 4, 10
+local CAST_AREA = CAST_GAP + CAST_H + 2 + CAST_TEXT + 2
+local CAST_HOLD = 0.6                   -- (an interrupted cast shown in red this long)
+
+-- (/if platecast: a made-up cast on every plate in play, looping (N.Demo below); nil: the real ones)
+local demo
+local function Casting(unit)
+    if demo then
+        if not demo.casting then return nil end
+        return demo[1], demo[2], demo[3], demo.started, demo.started + demo[4], demo[5]
+    end
+    return TH.Casting(unit)
+end
 
 ---------------------------------------------------------------------------
 -- One plate of ours (pooled)
@@ -64,7 +79,51 @@ local function Build()
     p.skull:SetAtlas("UI-HUD-UnitFrame-Target-HighLevelTarget_Icon", true)
     p.skull:SetPoint("CENTER", badge, "CENTER")
     p.skull:Hide()
+    -- (its cast: a bar of ours, the times handed to it (secret in a fight), never compared)
+    local cb = CreateFrame("StatusBar", nil, p)
+    cb:SetSize(W, CAST_H)
+    cb:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
+    cb.bg = cb:CreateTexture(nil, "BACKGROUND")
+    cb.bg:SetAllPoints()
+    cb.shield = cb:CreateTexture(nil, "ARTWORK", nil, 1)
+    cb.shield:SetAllPoints()
+    cb.shield:SetColorTexture(0.6, 0.6, 0.6, 1)
+    cb.shield:SetAlpha(0)
+    -- (the spell's icon round, in the level badge's circle: that badge's twin on the other side)
+    cb.ring = cb:CreateTexture(nil, "OVERLAY", nil, 1)
+    cb.ring:SetAtlas("UI-HUD-UnitFrame-SmallCircle")
+    cb.ring:SetSize(BADGE, BADGE)
+    cb.ring:SetPoint("RIGHT", cb, "LEFT", -2, 0)
+    cb.icon = cb:CreateTexture(nil, "OVERLAY", nil, 2)
+    cb.icon:SetSize(BADGE * 0.7, BADGE * 0.7)
+    cb.icon:SetPoint("CENTER", cb.ring, "CENTER", 0, 0)
+    local mask = cb:CreateMaskTexture()
+    mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    mask:SetAllPoints(cb.icon)
+    cb.icon:AddMaskTexture(mask)
+    cb.text = p:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    cb.text:SetFont(STANDARD_TEXT_FONT, CAST_TEXT, "")
+    cb.text:SetShadowOffset(1, -1)
+    cb.text:SetPoint("TOP", cb, "BOTTOM", 0, -2)
+    cb.text:SetWidth(W * 1.6)
+    cb.text:SetWordWrap(false)
+    cb:Hide()
+    cb:HookScript("OnShow", function() cb.text:Show() end)
+    cb:HookScript("OnHide", function() cb.text:Hide() end)
+    cb.text:Hide()
+    p.cast = cb
     return p
+end
+
+-- What's under the line: the cast bar, then the debuffs (under the cast while it shows)
+local function PlaceBelow(p)
+    local drop = p.auraDrop or -3
+    p.cast:ClearAllPoints()
+    p.cast:SetPoint("TOP", p, "BOTTOM", 0, drop - CAST_GAP + 3)
+    if p.auras then
+        p.auras:ClearAllPoints()
+        p.auras:SetPoint("TOPLEFT", p, "BOTTOMLEFT", 0, drop - (p.cast:IsShown() and CAST_AREA or 0))
+    end
 end
 
 local function Same(other)
@@ -112,9 +171,9 @@ local function AuraList(p)
         layout = { elementSpacing = DEBUFF_GAP, groupSpacing = 0, elementWidth = DEBUFF_SIZE, elementHeight = DEBUFF_SIZE },
         initializeFrame = StyleDebuff,
     })
-    c:SetPoint("TOPLEFT", p, "BOTTOMLEFT", 0, p.auraDrop or -3)
     c:Hide()
     p.auras = c
+    PlaceBelow(p)
     return c
 end
 
@@ -279,10 +338,7 @@ local function Refresh(p)
             end
         end
         p.auraDrop = showBar and -3 or (hasTitle and -17 or -9)
-        if p.auras then
-            p.auras:ClearAllPoints()
-            p.auras:SetPoint("TOPLEFT", p, "BOTTOMLEFT", 0, p.auraDrop)
-        end
+        PlaceBelow(p)
     end
     local value, max = UnitHealth(unit), UnitHealthMax(unit)
     if not Try(p.bar.SetMinMaxValues, p.bar, 0, max) or not Try(p.bar.SetValue, p.bar, value) then
@@ -302,9 +358,87 @@ local function Refresh(p)
     p.goalAlpha = target and 1 or OTHER_ALPHA
     p.goalScale = target and 1 or OTHER_SCALE
     p:SetFrameLevel(target and 20 or 10)
+    -- (a cast's end missed: gone with it)
+    if p.castKind and not Casting(unit) then p.castKind = nil end
     if not p.alpha then
         p.alpha, p.scale = p.goalAlpha, p.goalScale
         Draw(p)
+    end
+end
+
+---------------------------------------------------------------------------
+-- The unit's cast under the line: gold filling for a cast, green draining
+-- for a channel (its time gone drawn dark from the right), grey over it when
+-- it can't be interrupted (a secret flag: handed to SetAlphaFromBoolean),
+-- red a moment when it's interrupted. Its times go to the bar as they are.
+---------------------------------------------------------------------------
+local function CastOn()
+    return IN.Settings().nameplateCast ~= false
+end
+
+
+local function ShowCast(p, on)
+    local cb = p.cast
+    if cb:IsShown() == (on and true or false) then return end
+    cb:SetShown(on)
+    PlaceBelow(p)
+end
+
+local function CastStop(p)
+    p.castKind, p.castHold = nil, nil
+    ShowCast(p, false)
+end
+
+local function CastStart(p)
+    local unit = p.unit
+    if not (unit and CastOn()) then return CastStop(p) end
+    local kind, text, texture, startMs, endMs, notInterruptible = Casting(unit)
+    if not kind then
+        -- (an interrupted one stays red its moment)
+        if not p.castHold then CastStop(p) end
+        return
+    end
+    local cb = p.cast
+    if not Try(cb.SetMinMaxValues, cb, startMs, endMs) then return CastStop(p) end
+    p.castKind, p.castHold = kind, nil
+    local colors = TH.CAST_COLORS
+    if kind == "channel" then
+        local c = colors.channel
+        cb:SetReverseFill(true)
+        cb:SetStatusBarColor(0, 0, 0, 0.75)
+        cb.bg:SetColorTexture(c[1], c[2], c[3], 1)
+    else
+        local c = colors.cast
+        cb:SetReverseFill(false)
+        cb:SetStatusBarColor(c[1], c[2], c[3], 1)
+        cb.bg:SetColorTexture(TRACK[1], TRACK[2], TRACK[3], TRACK[4])
+    end
+    cb:SetValue(GetTime() * 1000)
+    if not Try(cb.shield.SetAlphaFromBoolean, cb.shield, notInterruptible, 0.85, 0) then cb.shield:SetAlpha(0) end
+    if not Try(cb.text.SetText, cb.text, text) then cb.text:SetText("") end
+    if not Try(cb.icon.SetTexture, cb.icon, texture) then cb.icon:SetTexture(nil) end
+    ShowCast(p, true)
+end
+
+local function CastInterrupted(p)
+    if not p.castKind or Casting(p.unit) then return end
+    local cb = p.cast
+    local c = TH.CAST_COLORS.interrupted
+    p.castKind, p.castHold = nil, GetTime() + CAST_HOLD
+    cb:SetReverseFill(false)
+    cb:SetMinMaxValues(0, 1)
+    cb:SetValue(1)
+    cb:SetStatusBarColor(c[1], c[2], c[3], 1)
+    cb.shield:SetAlpha(0)
+    cb.text:SetText(INTERRUPTED or "Interrupted")
+    ShowCast(p, true)
+end
+
+local function CastTick(p)
+    if p.castKind then
+        p.cast:SetValue(GetTime() * 1000)
+    elseif not p.castHold or GetTime() > p.castHold then
+        if p.cast:IsShown() then CastStop(p) end
     end
 end
 
@@ -345,6 +479,7 @@ local function Release(unit)
     HideGame(a.game, false)
     if a.ours then
         Auras(a.ours, nil)
+        CastStop(a.ours)
         a.ours:Hide()
         a.ours.unit = nil
         pool[#pool + 1] = a.ours
@@ -370,6 +505,7 @@ local function Add(unit)
     p:SetPoint("CENTER", game, "CENTER", 0, -PLATE_DROP)
     Refresh(p)
     Auras(p, unit)
+    CastStart(p)
 end
 
 -- (an error said once, then no more)
@@ -388,7 +524,22 @@ local events = CreateFrame("Frame")
 events:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 events:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 events:RegisterEvent("PLAYER_TARGET_CHANGED")
+-- (casts: any unit's, the ones with a plate of ours kept)
+local CAST_EVENTS = {
+    UNIT_SPELLCAST_START = CastStart, UNIT_SPELLCAST_STOP = CastStart, UNIT_SPELLCAST_FAILED = CastStart,
+    UNIT_SPELLCAST_DELAYED = CastStart, UNIT_SPELLCAST_CHANNEL_START = CastStart,
+    UNIT_SPELLCAST_CHANNEL_STOP = CastStart, UNIT_SPELLCAST_CHANNEL_UPDATE = CastStart,
+    UNIT_SPELLCAST_INTERRUPTIBLE = CastStart, UNIT_SPELLCAST_NOT_INTERRUPTIBLE = CastStart,
+    UNIT_SPELLCAST_INTERRUPTED = CastInterrupted,
+}
+for e in pairs(CAST_EVENTS) do pcall(events.RegisterEvent, events, e) end
 events:SetScript("OnEvent", function(_, event, unit)
+    local onCast = CAST_EVENTS[event]
+    if onCast then
+        local a = unit and active[unit]
+        if a and a.ours then Safe(onCast, a.ours) end
+        return
+    end
     if event == "NAME_PLATE_UNIT_ADDED" then
         Safe(Add, unit)
     elseif event == "NAME_PLATE_UNIT_REMOVED" then
@@ -437,9 +588,76 @@ events:SetScript("OnUpdate", function(_, elapsed)
         if a.ours then
             if data then Safe(Refresh, a.ours) end
             Safe(Ease, a.ours, elapsed)
+            Safe(CastTick, a.ours)
         end
     end
 end)
+
+-- /if platecast [cast | channel | shield | interrupt | off]: every plate of ours in play shows
+-- that made-up cast, over and over (an interrupt: cut short and red), to look at; off: the real ones
+local DEMOS = {
+    cast = { "cast", "Fireball", 135812, 2600, false },
+    channel = { "channel", "Arcane Missiles", 136096, 3000, false },
+    shield = { "cast", "Pyroblast", 135808, 2600, true },
+    interrupt = { "cast", "Frostbolt", 135846, 2000, false, true },
+}
+local DEMO_PAUSE = 900
+
+local function EachPlate(fn)
+    for _, a in pairs(active) do
+        if a.ours then Safe(fn, a.ours) end
+    end
+end
+
+local demoTicker = CreateFrame("Frame")
+demoTicker:Hide()
+demoTicker:SetScript("OnUpdate", function()
+    if not demo then return demoTicker:Hide() end
+    local now = GetTime() * 1000
+    if demo.casting then
+        -- (an interrupt: cut at 60% of the way)
+        local stopAt = demo.started + demo[4] * (demo[6] and 0.6 or 1)
+        if now >= stopAt then
+            demo.casting = false
+            demo.restartAt = now + DEMO_PAUSE
+            EachPlate(demo[6] and CastInterrupted or CastStop)
+        end
+    elseif now >= demo.restartAt then
+        demo.casting, demo.started = true, now
+        EachPlate(CastStart)
+    end
+end)
+
+function N.Demo(kind)
+    kind = kind and kind:lower() or "cast"
+    if kind == "off" then
+        demo = nil
+        demoTicker:Hide()
+        EachPlate(CastStop)
+        EachPlate(CastStart)
+        IF.Print("Nameplate cast demo: off.")
+        return
+    end
+    local d = DEMOS[kind]
+    if not d then
+        IF.Print("Nameplate cast demo: cast, channel, shield, interrupt or off.")
+        return
+    end
+    demo = { d[1], d[2], d[3], d[4], d[5], d[6], casting = true, started = GetTime() * 1000 }
+    demoTicker:Show()
+    local n = 0
+    for _, a in pairs(active) do
+        if a.ours then n = n + 1 end
+    end
+    EachPlate(CastStart)
+    if not CastOn() then
+        IF.Print("Nameplate cast demo: the Nameplate cast bars setting is off (the Immersion tab).")
+    elseif n == 0 then
+        IF.Print("Nameplate cast demo: " .. kind .. ", but no nameplates in sight: stand near some NPCs or mobs.")
+    else
+        IF.Print("Nameplate cast demo: " .. kind .. " on " .. n .. " nameplates (/if platecast off to stop).")
+    end
+end
 
 -- The setting changed: every plate in play drawn again (ours, or the game's)
 function N.Apply()

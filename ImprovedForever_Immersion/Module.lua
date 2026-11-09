@@ -58,6 +58,11 @@ IF.AddCommand("loottest", function(args)
 end,
     "[n | clear]: fly n items from your bags into the recent loot (or empty it)")
 
+-- /if platecast [cast | channel | shield | interrupt | off]: a made-up cast on every
+-- nameplate in sight, looping (Nameplates.lua)
+IF.AddCommand("platecast", function(args) IN.Nameplates.Demo(args[1]) end,
+    "[cast | channel | shield | interrupt | off]: a made-up cast on the nameplates in sight, to look at")
+
 -- /if padprobe: what the game's gamepad bar holds (GamepadBar.lua)
 IF.AddCommand("padprobe", function() IN.GamepadBar.Probe() end, ": what the gamepad bar's buttons hold")
 
@@ -107,6 +112,7 @@ local DEFAULTS = {
     gcd = false,        -- the global cooldown's swipe on the gamepad bar's tiles
     playerX = 0, playerY = 0, playerScale = 100, -- the player frame's place (px right, px up) and size (%)
     headerX = 0, headerY = 0, -- the header's (target, banners, quest arrow) place, px right / up
+    nameplateCast = true, -- the unit's cast under its nameplate's line (its spell's name and icon)
     nameplateDebuffs = true, -- your debuffs on the mob, under its nameplate (the game fills them, in a fight too)
     castRange = true,   -- the target header greyed while an enemy is out of your reach
     hpLine = true,      -- your health as a bar over the power line

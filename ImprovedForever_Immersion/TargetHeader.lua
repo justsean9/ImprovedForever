@@ -412,6 +412,9 @@ local function Casting(unit)
     if Present(chname) then return "channel", ctext, ctexture, cstart, cend, cnot end
 end
 
+TH.Casting = Casting
+TH.CAST_COLORS = CAST_COLORS
+
 local function Shielded(notInterruptible)
     if not Try(cast.shield.SetAlphaFromBoolean, cast.shield, notInterruptible, 1, 0) then
         cast.shield:SetAlpha(0)
