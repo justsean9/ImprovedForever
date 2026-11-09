@@ -439,7 +439,7 @@ local classRight = ClassButton(faceCenter, FACE, 1, { "PADRSHOULDER", "PADRTRIGG
 -- to bottom in a grid (left, up, down, right in a cross).
 ---------------------------------------------------------------------------
 local KEYD = Shape({ size = 36, glyph = 0 })
-local KEY_GAP = 14          -- (between two groups)
+local KEY_GAP = 34          -- (between two groups)
 local KEY_DIRS = { { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 0 } }
 local keyCenters, keyButtons = {}, {}
 for g = 1, 3 do
@@ -1181,12 +1181,9 @@ end
 -- A face tile whose button has an action of the player's on it (the Bindings tab, Override.lua)
 -- shows that action's icon, not the game's slot under it: the press runs ours, so the tile
 -- must say so. Only with no trigger held (the top bar): an override is bound to the plain press.
-local function OverrideTile(b)
-    if not (IF.Override and b.keyName and IF.Binds.PadOverrides()) then return end
-    local action = IF.Override.Get(b.keyName)
-    if not action then return end
-    local _, texture = IF.ActionInfo(action)
-    if not texture then return end
+-- A tile showing something of ours in place of the game's slot: its picture (a texture),
+-- no count, ring, timer or cooldown
+local function OursTile(b, texture, atlas)
     local d = b.d
     b.count:SetText("")
     b.ring:Hide()
@@ -1198,11 +1195,27 @@ local function OverrideTile(b)
         b.cooldown:Clear()
         b.cdStart = nil
     end
-    b.icon:SetTexture(texture)
-    b.icon:SetTexCoord(unpack(FULL))
-    b.icon:SetSize(d.side * ICON_FILL, d.side * ICON_FILL)
-    b.icon:SetRotation(TURN)
+    if atlas then
+        b.icon:SetAtlas(atlas)
+        b.icon:SetSize(d.width * UprightFill(), d.width * UprightFill())
+        b.icon:SetRotation(0)
+    else
+        b.icon:SetTexture(texture)
+        b.icon:SetTexCoord(unpack(FULL))
+        b.icon:SetSize(d.side * ICON_FILL, d.side * ICON_FILL)
+        b.icon:SetRotation(TURN)
+    end
     b.icon:SetVertexColor(1, 1, 1)
+    b.icon:SetDesaturated(false)
+end
+
+local function OverrideTile(b)
+    if not (IF.Override and b.keyName and IF.Binds.PadOverrides()) then return end
+    local action = IF.Override.Get(b.keyName)
+    if not action then return end
+    local _, texture = IF.ActionInfo(action)
+    if not texture then return end
+    OursTile(b, texture)
 end
 
 -- A class action of ours, shown while the game's is (it has one for the
@@ -1285,14 +1298,54 @@ local function PlaceCatchers(on)
     end
 end
 
+-- The keys held now as a key's prefix ("ALT-CTRL-")
+local function ModsHeld()
+    return (IsAltKeyDown() and "ALT-" or "") .. (IsControlKeyDown() and "CTRL-" or "")
+        .. (IsShiftKeyDown() and "SHIFT-" or "")
+end
+
+-- A key's short name on a tile: "Z", "C-Z" (Alt, Ctrl, Shift: A, C, S)
+local function ShortKey(prefix, base)
+    return (prefix:gsub("(%u)%u*%-", "%1-")) .. base
+end
+
+-- Is base one of the keys the game's slot i answers to (its ACTIONBUTTONi binding)
+local function SlotOnKey(i, base)
+    for _, key in ipairs({ GetBindingKey("ACTIONBUTTON" .. i) }) do
+        if key == base then return true end
+    end
+    return false
+end
+
+-- The twelve keys' tiles: each says its own key (the layer of the Alt / Ctrl / Shift held)
+-- and shows what that key runs: what the Bindings tab put on it, else the game's slot
+-- when that slot is on this very key (1 to 4 by default), else nothing
 local function MirrorKeys()
+    local prefix = ModsHeld()
+    local groups = IF.Binds and IF.Binds.KEY_GROUPS
     for i, b in ipairs(keyButtons) do
         local native = _G["ActionButton" .. i]
-        local on = native ~= nil and native:IsVisible()
-        b:SetShown(on)
-        if on then
-            Mirror(b, native)
-            b.hotkey:SetText(HotkeyText(native))
+        local base = groups and groups[math.ceil(i / 4)][(i - 1) % 4 + 1]
+        if not base then
+            -- (no key table: the game's bar as it is)
+            local on = native ~= nil and native:IsVisible()
+            b:SetShown(on)
+            if on then
+                Mirror(b, native)
+                b.hotkey:SetText(HotkeyText(native))
+            end
+        else
+            local texture, atlas = IF.Binds.KeyPicture(prefix .. base, true)
+            b:SetShown(true)
+            if texture ~= nil or atlas ~= nil then
+                OursTile(b, texture, atlas)
+                b.native = nil
+            elseif prefix == "" and native ~= nil and native:IsVisible() and SlotOnKey(i, base) then
+                Mirror(b, native)
+            else
+                Mirror(b, nil)
+            end
+            b.hotkey:SetText(ShortKey(prefix, base))
         end
     end
 end

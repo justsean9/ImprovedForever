@@ -18,9 +18,12 @@
 -- modified click on an item; an action's: a key, Override.lua): recording
 -- takes a key or a click as well as a controller press, and it goes on the
 -- press of the input used. A click on a card records, a right-click clears
--- its keyboard / mouse press (else its controller one). The game's Gamepad
--- UI off: no drawing, the list alone, only what takes a key, its key on the
--- right.
+-- its keyboard / mouse press (else its controller one). With the mouse and
+-- keyboard in hand (or the game's Gamepad UI off) the drawing is the
+-- keyboard's: twelve keys in three crosses (1 2 3 4, Z X C V, Q E R F), the
+-- Alt / Ctrl / Shift chips making another layer of them; a click on a key
+-- binds the card picked there, a right-click clears it. The Gamepad UI off,
+-- the list holds only what takes a key, its key on the right.
 local _, IF = ...
 
 local K = IF.ConfigKit
@@ -67,11 +70,12 @@ for _, s in ipairs(SPOTS) do SPOT[s.key] = s end
 -- when it is on none; spec: that press; selAction: the card picked (its
 -- action, a binding's id); list: its list; popup: a confirmation up
 -- ({ onAccept })
-local P = { list = 1 }
+local P = { list = 1, mods = {} }
 B.Editor = P
 -- (its messages under the drawing, not over the legend: Menu.lua; keys
 -- alone, no legend: P:Arrange)
 P.ShowsToast = true
+P.mouseLegend = true
 
 -- A touchpad (its corners) only on a PlayStation controller; elsewhere the
 -- same button is View / Minus
@@ -222,6 +226,43 @@ local function KeysOnly()
     return not IF.Input.PadEnabled()
 end
 
+-- The keyboard's drawing (twelve keys) instead of the controller's: with
+-- the mouse and keyboard in hand, or the Gamepad UI off
+-- Only with the Immersion module: its action bar (bottom right) shows these
+-- twelve keys; without it, the list alone with the Gamepad UI off, else the
+-- controller's drawing
+local function HasKeyBar()
+    local IN = IF.Interface
+    return IN ~= nil and IN.GamepadBar ~= nil
+end
+
+local function KeyView()
+    return HasKeyBar() and (KeysOnly() or Mouse())
+end
+
+-- The twelve keys, in three crosses (as the crossbar's slots): the keys of
+-- each cross left, top, bottom, right. Alt / Ctrl / Shift held make another
+-- layer of them (a key's spec: "ALT-CTRL-SHIFT-1")
+local KB_GROUPS = B.KEY_GROUPS
+local KB_CELLS = { { -1, 0 }, { 0, -1 }, { 0, 1 }, { 1, 0 } }
+local KB_MODS = { { "ALT", "Alt" }, { "CTRL", "Ctrl" }, { "SHIFT", "Shift" } }
+local KB_D, KB_OFF = 52, 28
+local KB_W, KB_H = 400, 150
+local KB_X = { 66, 200, 334 }
+local KB_Y = 58
+
+-- "ALT-CTRL-F2" -> { ALT = true, CTRL = true }, "F2"
+local function SplitKey(spec)
+    local mods, base = {}, spec
+    while base do
+        local mod, rest = base:match("^(%u+)%-(.+)$")
+        if not (mod and (mod == "ALT" or mod == "CTRL" or mod == "SHIFT")) then break end
+        mods[mod] = true
+        base = rest
+    end
+    return mods, base
+end
+
 ---------------------------------------------------------------------------
 -- The lists: what can be bound, a card each: what it does under its name,
 -- its press on its right (bound: the card washed)
@@ -296,9 +337,9 @@ function P:OpenPicker()
         chooseVerb = "Bind",
         -- (the card picked kept through a change)
         current = function() return P.selAction end,
-        -- (the Gamepad UI off: its keyboard / mouse press)
+        -- (the keyboard's drawing: its keyboard / mouse press)
         right = function(e)
-            if not P.arranged then return e.press end
+            if not (KeyView() or KeysOnly()) then return e.press end
             return e.key or "|cff6f6452—|r"
         end,
         bound = function(e) return e.press ~= nil or e.key ~= nil end,
@@ -311,9 +352,9 @@ function P:OpenPicker()
             return "|cffffffff" .. (e.name or "") .. "|r:  " .. (press and PressText(press, 14) or "no controller press")
                 .. (TakesKey(e) and ("  ·  " .. (key and B.KeyText(key) or "no key")) or "")
         end,
-        -- (a card picked binds it only with keys alone: with the Gamepad UI
-        -- Square does, a pick only picks)
-        onChoose = function() if KeysOnly() then P:Bind() end end,
+        -- (a pick only picks: a key of the drawing, or its "Press a key"
+        -- button, or Square, binds it)
+        onChoose = function() if KeysOnly() and not KeyView() then P:Bind() end end,
         onAlt = function() P:Unbind((Mouse() or KeysOnly()) and "key") end,
     })
 end
@@ -353,6 +394,135 @@ local function NewSpot(parent, s)
     return b
 end
 
+---------------------------------------------------------------------------
+-- The keyboard's drawing: twelve keys in three crosses, chips for the layer
+-- (Alt / Ctrl / Shift) and one to press a key not among them
+---------------------------------------------------------------------------
+-- The layer's prefix: "ALT-CTRL-"
+local function ModPrefix()
+    local text = ""
+    for _, mod in ipairs(KB_MODS) do
+        if P.mods[mod[1]] then text = text .. mod[1] .. "-" end
+    end
+    return text
+end
+
+local function NewKeySpot(parent, key, x, y)
+    local b = K.NewFrame("Button", nil, parent)
+    b:SetSize(KB_D, KB_D)
+    b:SetPoint("CENTER", parent, "TOPLEFT", x, -y)
+    -- (only the middle takes the mouse: the crosses' diamonds overlap in their corners)
+    local inset = (KB_D - KB_OFF) / 2
+    b:SetHitRectInsets(inset, inset, inset, inset)
+    b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    b.base = key
+    b.glow = b:CreateTexture(nil, "BACKGROUND")
+    b.glow:SetTexture(TEX .. "ic_slot_glow")
+    b.glow:SetBlendMode("ADD")
+    b.glow:SetSize(KB_D * 1.9, KB_D * 1.9)
+    b.glow:SetPoint("CENTER")
+    b.fill = b:CreateTexture(nil, "ARTWORK", nil, 0)
+    b.fill:SetTexture(TEX .. "ic_key_diamond")
+    b.fill:SetAllPoints()
+    b.line = b:CreateTexture(nil, "ARTWORK", nil, 1)
+    b.line:SetTexture(TEX .. "ic_key_diamond_line")
+    b.line:SetAllPoints()
+    b.icon = K.RoundIcon(b, 26, "ARTWORK")
+    b.icon:SetDrawLayer("ARTWORK", 2)
+    b.icon:SetPoint("CENTER")
+    b.big = K.Text(b, 17, KC.cream, "OVERLAY")
+    b.big:SetPoint("CENTER", 0, 1)
+    b.big:SetText(key)
+    b.small = K.Text(b, 11, KC.cream, "OVERLAY")
+    b.small:SetPoint("BOTTOM", b, "BOTTOM", 0, 9)
+    b.small:SetText(key)
+    b.dot = b:CreateTexture(nil, "OVERLAY", nil, 2)
+    b.dot:SetTexture(TEX .. "ic_dot")
+    b.dot:SetSize(8, 8)
+    b.dot:SetPoint("CENTER", b, "TOP", 0, -7)
+    b:SetScript("OnEnter", function(self) P.hover = self.spec menu.Render() end)
+    b:SetScript("OnLeave", function() P.hover = nil menu.Render() end)
+    b:SetScript("OnClick", function(self, button) P:ClickKey(self.spec, button) end)
+    return b
+end
+
+local function NewChip(parent, text, w, onClick)
+    local c = K.NewFrame("Button", nil, parent)
+    c:SetSize(w, 22)
+    c.box = K.Box(c, 4, 1, "BACKGROUND")
+    c.box:SetColors(KC.boxBg, 0.95, KC.info, 0.55)
+    c.text = K.Text(c, 12, KC.cream)
+    c.text:SetPoint("CENTER", 0, 1)
+    c.text:SetText(text)
+    c:SetScript("OnClick", onClick)
+    return c
+end
+
+function P:BuildKeys(group)
+    local f = self.frame
+    local kb = K.NewFrame("Frame", nil, group)
+    kb:SetSize(KB_W, KB_H)
+    kb:Hide()
+    f.kb = kb
+    f.keys = {}
+    for g, keys in ipairs(KB_GROUPS) do
+        for i, key in ipairs(keys) do
+            local cell = KB_CELLS[i]
+            f.keys[key] = NewKeySpot(kb, key, KB_X[g] + cell[1] * KB_OFF, KB_Y + cell[2] * KB_OFF)
+        end
+    end
+    -- Under them: the layer's chips (a click turns one on / off; the keys
+    -- held do too), and the key to press for a key not on the drawing
+    local y = KB_Y + KB_OFF + KB_D / 2 + 20
+    local widths = { 56, 56, 56, 100 }
+    local x = (KB_W - (56 * 3 + 100 + 8 * 3)) / 2
+    f.chips = {}
+    for i, mod in ipairs(KB_MODS) do
+        local c = NewChip(kb, mod[2], widths[i], function()
+            P.mods[mod[1]] = not P.mods[mod[1]] or nil
+            menu.Render()
+        end)
+        c.mod = mod[1]
+        c:SetPoint("LEFT", kb, "TOPLEFT", x, -y)
+        x = x + widths[i] + 8
+        f.chips[i] = c
+    end
+    f.record = NewChip(kb, "Press a key", widths[4], function() P:Bind() end)
+    f.record:SetPoint("LEFT", kb, "TOPLEFT", x, -y)
+    kb:SetScript("OnShow", function(self) self:RegisterEvent("MODIFIER_STATE_CHANGED") end)
+    kb:SetScript("OnHide", function(self) self:UnregisterEvent("MODIFIER_STATE_CHANGED") end)
+    kb:SetScript("OnEvent", function()
+        P.mods = { ALT = IsAltKeyDown() or nil, CTRL = IsControlKeyDown() or nil, SHIFT = IsShiftKeyDown() or nil }
+        menu.Render()
+    end)
+end
+
+-- A click on a key: the card picked onto it (the layer's); a right-click
+-- clears it
+function P:ClickKey(spec, button)
+    if IF.InCombat() then return menu.Toast("Not in combat", true) end
+    if button == "RightButton" then return self:ClearKey(spec) end
+    local e = self:Entry()
+    if not e then return menu.Toast("Pick something on the left first", true) end
+    if not TakesKey(e) then return menu.Toast((e.name or "It") .. " has no keyboard press", true) end
+    if e.def then
+        local ok, why = B.KeyFits(e.def, spec)
+        if not ok then return menu.Toast(why, true) end
+    end
+    self:BindKey(e, spec)
+end
+
+function P:ClearKey(spec)
+    local O = IF.Override
+    local defs, action = B.KeyBound(spec), O.KeyAction(spec)
+    if #defs == 0 and not action then return menu.Toast(B.KeyText(spec) .. " is free") end
+    for _, def in ipairs(defs) do B.SetKey(def.id, nil) end
+    if action then O.SetKey(spec, nil) end
+    menu.Toast(B.KeyText(spec) .. " cleared")
+    self.picker:LoadList()
+    menu.Render()
+end
+
 function P:Build(parent)
     local stage = parent:GetParent() or parent
     local f = K.NewFrame("Frame", nil, stage)
@@ -388,6 +558,7 @@ function P:Build(parent)
     f.art = art
     f.spots = {}
     for _, s in ipairs(SPOTS) do f.spots[s.key] = NewSpot(art, s) end
+    self:BuildKeys(group)
     f.runs = K.ChatText(group, 12, KC.help)
     f.runs:SetJustifyH("CENTER")
     -- Under it, the panel's messages (ShowsToast: not over the legend)
@@ -442,17 +613,22 @@ function P:Layout()
     local f = self.frame
     local w, h = f.mid:GetSize()
     if not w or w <= 0 then return end
-    local scale = math.min(MAX_SCALE, (w - 2 * ART_PAD) / DRAWN_W, (h - ART_TOP - 8 - RUNS_H - MSG_H) / ART_H)
-    local artH = ART_H * scale
-    f.group:SetHeight(ART_TOP + artH + 8 + RUNS_H + MSG_H)
-    f.art:SetScale(scale)
+    local keys = KeyView()
+    local art = keys and f.kb or f.art
+    local artW, artH, drawn = ART_W, ART_H, DRAWN_W
+    if keys then artW, artH, drawn = KB_W, KB_H, KB_W end
+    local scale = math.min(MAX_SCALE, (w - 2 * ART_PAD) / drawn, (h - ART_TOP - 8 - RUNS_H - MSG_H) / artH)
+    local height = artH * scale
+    f.group:SetHeight(ART_TOP + height + 8 + RUNS_H + MSG_H)
+    art:SetSize(artW, artH)
+    art:SetScale(scale)
     -- (a scaled frame's offsets are in its own units)
-    f.art:ClearAllPoints()
-    f.art:SetPoint("TOP", f.group, "TOP", 0, -ART_TOP / scale)
+    art:ClearAllPoints()
+    art:SetPoint("TOP", f.group, "TOP", 0, -ART_TOP / scale)
     f.runs:ClearAllPoints()
-    f.runs:SetPoint("TOP", f.group, "TOP", 0, -(ART_TOP + artH + 8))
+    f.runs:SetPoint("TOP", f.group, "TOP", 0, -(ART_TOP + height + 8))
     f.over:ClearAllPoints()
-    f.over:SetPoint("CENTER", f.group, "TOP", 0, -(ART_TOP + artH / 2))
+    f.over:SetPoint("CENTER", f.group, "TOP", 0, -(ART_TOP + height / 2))
 end
 
 function P:Show()
@@ -822,7 +998,7 @@ function P:Help()
     local H = K.H
     if self.popup then return { H({ "A" }, "Replace", "A"), H({ "B" }, "Cancel", "B") } end
     local hints = { H({ "DPAD" }, "Move"), H({ "LB", "RB" }, "List"), H({ "X" }, "Bind", "X") }
-    if self.key then
+    if self.key or self.keyed then
         hints[#hints + 1] = H({ "Y" }, Region() and ("Clear / Hold to " .. (touch.IsOff(Region()) and "Turn On" or "Turn Off"))
             or "Unbind / Hold to Reset", "Y")
     end
@@ -871,29 +1047,100 @@ local function RenderCorners(f)
     end
 end
 
--- The drawing beside the list while the game's Gamepad UI is on; off, the
--- list alone, the whole page wide, keys only, and the panel's messages
--- over the legend's place
+-- The drawing beside the list: the controller's, or (with Immersion, the
+-- mouse and keyboard in hand or the Gamepad UI off) the keyboard's. The
+-- Gamepad UI off and no Immersion: the list alone, the whole page wide, keys
+-- only, no legend (every press has a click), and the panel's messages over
+-- the legend's place
 function P:Arrange()
-    local mouse = KeysOnly()
-    if self.arranged == mouse then return end
-    self.arranged = mouse
+    local plain = KeysOnly() and not HasKeyBar()
+    if self.arranged == plain and self.keysOnly == KeysOnly() then return end
+    self.arranged, self.keysOnly = plain, KeysOnly()
     -- (the cards and their lists again for it)
     if self.picker.def then self:OpenPicker() end
     local f = self.frame
-    f.mid:SetShown(not mouse)
+    f.mid:SetShown(not plain)
     self.picker:ClearAllPoints()
     self.picker:SetPoint("TOPLEFT", 8, -8)
-    if mouse then
+    if plain then
         self.picker:SetPoint("BOTTOMRIGHT", -8, 8)
     else
         self.picker:SetPoint("BOTTOMLEFT", 8, 8)
         self.picker:SetWidth(LIST_W)
     end
-    self.ShowsToast = not mouse
-    -- (keys alone: a click on a card binds it, no legend; else its Square
-    -- in the legend, clicked too)
-    self.mouseLegend = not mouse
+    self.ShowsToast = not plain
+    self.mouseLegend = not KeysOnly()
+end
+
+-- The keyboard's twelve keys: what is on each (its icon, red: two things
+-- clash there), the card picked's key lit, the layer's chips; over it the
+-- key (the one under the mouse, else the card picked's) and what runs there
+function P:RenderKeys(e)
+    local f = self.frame
+    local O = IF.Override
+    local key = KeyOf(e)
+    -- (a card newly picked: its key's layer)
+    local id = e and (e.action or e.name)
+    if id ~= self.keysFor then
+        self.keysFor = id
+        if key then self.mods = SplitKey(key) end
+    end
+    local prefix = ModPrefix()
+    for base, b in pairs(f.keys) do
+        local spec = prefix .. base
+        b.spec = spec
+        local defs, action = B.KeyBound(spec), O.KeyAction(spec)
+        local count = #defs + (action and 1 or 0)
+        local texture, atlas = B.KeyPicture(spec)
+        local icon = texture or atlas
+        local picked, hover = key == spec, self.hover == spec
+        if icon then K.SetIcon(b.icon, icon) end
+        b.icon:SetShown(icon ~= nil)
+        b.big:SetShown(icon == nil)
+        b.small:SetShown(icon ~= nil)
+        b.glow:SetShown(picked or hover)
+        Tint(b.glow, KC.focus, picked and 0.9 or 0.45)
+        Tint(b.fill, KC.boxBg, 0.95)
+        if count > 1 then
+            Tint(b.line, KC.danger)
+        elseif picked then
+            Tint(b.line, KC.focus)
+        elseif hover then
+            Tint(b.line, KC.cream, 0.9)
+        else
+            Tint(b.line, KC.info, count > 0 and 1 or 0.5)
+        end
+        b.dot:SetShown(count > 0)
+        Tint(b.dot, count > 1 and KC.danger or KC.slot)
+        b.big:SetAlpha(hover and 1 or 0.8)
+    end
+    for _, c in ipairs(f.chips) do
+        local on = self.mods[c.mod] and true or false
+        c.box:SetColors(KC.boxBg, 0.95, on and KC.focus or KC.info, on and 1 or 0.55)
+        c.text:SetTextColor(unpack(on and KC.cream or KC.help))
+    end
+    f.record:SetAlpha(e and TakesKey(e) and 1 or 0.4)
+
+    local shown = self.hover or key
+    local names = {}
+    if shown then
+        for _, def in ipairs(B.KeyBound(shown)) do names[#names + 1] = def.label end
+        local action = O.KeyAction(shown)
+        if action then names[#names + 1] = O.ActionLabel(action) or action end
+    end
+    f.press:SetText(shown and ("|cff9d917aKey|r   " .. B.KeyText(shown))
+        or ("|cff6f6452" .. (e and ((e.name or "") .. ": no key") or "Nothing picked") .. "|r"))
+    if shown then
+        local clash = #names > 1
+        f.runs:SetText("Runs:  " .. (clash and "|cffff7a5c" or "|cffd8ccb0")
+            .. (#names > 0 and table.concat(names, ", ") or "nothing") .. "|r")
+    else
+        f.runs:SetText(e and TakesKey(e) and "Click a key to bind it" or "")
+    end
+    local toast = menu.toast
+    f.msg:SetText(toast and toast.text or "")
+    if toast then f.msg:SetTextColor(unpack(toast.color)) end
+    f.over:Hide()
 end
 
 function P:Render()
@@ -906,6 +1153,21 @@ function P:Render()
     -- The card picked: its press lit
     local e = self:Entry()
     self.selAction = e and e.action
+    -- The keyboard's drawing in hand, or the controller's
+    local keys = KeyView()
+    f.art:SetShown(not keys)
+    f.kb:SetShown(keys)
+    if self.keysShown ~= keys then
+        self.keysShown = keys
+        self:Layout()
+    end
+    if keys then
+        self.key, self.spec = nil, nil
+        self.keyed = KeyOf(e) ~= nil
+        self:RenderKeys(e)
+        return
+    end
+    self.keyed = false
     local press = PressesOf(e)[1]
     -- (on another controller a corner, or the View button, isn't drawn)
     local spot = press and SPOT[CornerOf(press) and press or select(2, B.Parse(press))]

@@ -594,6 +594,51 @@ function B.KeyBind(def)
     return spec or def.defaultKey
 end
 
+-- The keyboard's twelve keys (the Bindings tab's drawing, the keyboard bar's
+-- tiles): three crosses, each one's keys left, top, bottom, right
+B.KEY_GROUPS = { { "1", "2", "3", "4" }, { "Z", "X", "C", "V" }, { "Q", "E", "R", "F" } }
+
+-- What a key shows (the Bindings tab's drawing, the keyboard bar's tile): the picture of what
+-- the player put on it (an action, or one of ours with an icon) as a texture or an atlas, else
+-- (not ours alone, no Alt / Ctrl / Shift) the game's slot that answers to this very key (the
+-- first four, by default): its texture, third, the slot's button. nil: nothing.
+function B.KeyPicture(spec, oursOnly)
+    local O = IF.Override
+    local action = O and O.KeyAction(spec)
+    if action and IF.ActionInfo then
+        local _, texture = IF.ActionInfo(action)
+        if texture then return texture end
+    end
+    for _, def in ipairs(B.KeyBound(spec)) do
+        local icon = def.icon
+        if type(icon) == "string" and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(icon) then
+            return nil, icon
+        elseif icon then
+            return icon
+        end
+    end
+    if oursOnly or spec:find("-", 1, true) then return nil end
+    for g, keys in ipairs(B.KEY_GROUPS) do
+        for j, key in ipairs(keys) do
+            if key == spec then
+                local i = (g - 1) * 4 + j
+                local native = _G["ActionButton" .. i]
+                if not (native and native:IsVisible()) then return nil end
+                for _, bound in ipairs({ GetBindingKey("ACTIONBUTTON" .. i) }) do
+                    if bound == spec then
+                        local icon = native.icon
+                        local texture = icon and icon:IsShown() and icon:GetTexture()
+                        if type(texture) == "number" or type(texture) == "string" then return texture, nil, native end
+                        return nil
+                    end
+                end
+                return nil
+            end
+        end
+    end
+    return nil
+end
+
 -- "Alt + F", "Ctrl + Left Click"
 function B.KeyText(spec)
     if not spec then return "Not bound" end
