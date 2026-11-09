@@ -502,30 +502,58 @@ end
 
 -- (what the real container and its buttons hold: for finding why a tooltip doesn't show)
 local function RealReport()
+    local log = { date("%H:%M:%S") .. " buff row report" }
+    IF.db.buffReport = log      -- (saved on /reload; cleared by /if bufftest off)
+    local function Print(text)
+        log[#log + 1] = text
+        IF.Print(text)
+    end
     local c = container
-    if not c then return IF.Print("buff row: no container (this client has none, or it was never shown)") end
+    if not c then return Print("buff row: no container (this client has none, or it was never shown)") end
     local n = c:GetNumChildren()
-    IF.Print(string.format("buff row: container %s, %d buttons, mouse %s", c:IsShown() and "shown" or "hidden", n,
+    Print(string.format("buff row: container %s, %d buttons, mouse %s", c:IsShown() and "shown" or "hidden", n,
         tostring(c:IsMouseEnabled())))
+    local first
     for i = 1, n do
         local b = select(i, c:GetChildren())
-        local hit = b:GetNumChildren() > 0 and select(1, b:GetChildren())
-        local tex = b.tipIcon and b.tipIcon:GetTexture()
-        IF.Print(string.format("  %d: shown %s, our tooltip frame %s, mouse %s, icon %s", i, tostring(b:IsShown()),
-            hit and "yes" or "NO", hit and tostring(hit:IsMouseEnabled()) or "-",
-            tex == nil and "none" or (Secret(tex) and "secret" or tostring(tex))))
+        if b:IsShown() then
+            first = first or b
+            local hit = b:GetNumChildren() > 0 and select(1, b:GetChildren())
+            local tex = b.tipIcon and b.tipIcon:GetTexture()
+            Print(string.format("  %d: our tooltip frame %s, mouse %s, icon %s", i, hit and "yes" or "NO",
+                hit and tostring(hit:IsMouseEnabled()) or "-",
+                tex == nil and "none" or (Secret(tex) and "secret" or tostring(tex))))
+        end
+    end
+    -- (the first shown button's own fields and methods with "aura" or "tip" in them: what it can tell)
+    if first then
+        local names = {}
+        for k in pairs(first) do names[#names + 1] = tostring(k) end
+        local mt = getmetatable(first)
+        local idx = mt and mt.__index
+        if type(idx) == "table" then
+            for k in pairs(idx) do
+                local name = tostring(k):lower()
+                if name:find("aura") or name:find("tip") or name:find("spell") or name:find("unit") then
+                    names[#names + 1] = "m:" .. tostring(k)
+                end
+            end
+        end
+        table.sort(names)
+        Print("  fields: " .. table.concat(names, ", "))
     end
     local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
     for i = 1, 5 do
         local ok, d = pcall(get, "player", i, "HELPFUL")
         if not ok or type(d) ~= "table" then break end
-        IF.Print("  aura " .. i .. ": icon " .. tostring(Secret(d.icon) and "secret" or d.icon))
+        Print("  aura " .. i .. ": icon " .. tostring(Secret(d.icon) and "secret" or d.icon))
     end
 end
 
 IF.AddCommand("bufftest", function()
     if demoUntil then
         DemoHide()
+        IF.db.buffReport = nil
         IF.Print("buff test: off")
         return
     end
