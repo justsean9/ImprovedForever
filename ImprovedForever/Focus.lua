@@ -104,6 +104,44 @@ function F.Fade(region, hide, alpha)
     end
 end
 
+-- A fade played again, so ours is the newest alpha animation on the frame: one of the game's own
+-- (its cast bar's FadeOutAnim, a flash) started on it after ours takes the alpha over till it ends
+function F.Refade(region)
+    local group = fades[region]
+    if group and group:IsPlaying() then
+        group:Stop()
+        group:Play()
+    end
+end
+
+---------------------------------------------------------------------------
+-- Escape closes a window of ours: F.EscapeClose(frame). Never by UISpecialFrames: the game's
+-- CloseSpecialWindows (Escape, the pad's B) reads the globals named there, which runs it tainted,
+-- and the ClearTarget / SpellStopCasting / SpellStopTargeting that follow in the same press are
+-- forbidden (ADDON_ACTION_FORBIDDEN, looping). An override binding of ESCAPE on the window,
+-- while it is shown, to a button of ours that hides it.
+---------------------------------------------------------------------------
+local escapes = {}
+
+function F.EscapeClose(frame)
+    if not (frame and frame.HookScript) or escapes[frame] then return end
+    local button = CreateFrame("Button", (frame:GetName() or tostring(frame):gsub("%W", "")) .. "EscapeButton", UIParent)
+    button:RegisterForClicks("AnyUp")
+    button:SetScript("OnClick", function() frame:Hide() end)
+    escapes[frame] = button
+    local function Bind()
+        if IF.InCombat() then return end
+        ClearOverrideBindings(frame)
+        if frame:IsShown() then SetOverrideBindingClick(frame, true, "ESCAPE", button:GetName()) end
+    end
+    frame:HookScript("OnShow", Bind)
+    frame:HookScript("OnHide", Bind)
+    local events = CreateFrame("Frame")
+    events:RegisterEvent("PLAYER_REGEN_ENABLED")
+    events:SetScript("OnEvent", Bind)
+    if frame:IsShown() then Bind() end
+end
+
 -- Faded now? (and the alpha it's drawn at): for probes
 function F.Faded(region)
     local group = fades[region]

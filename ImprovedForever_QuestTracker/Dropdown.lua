@@ -300,7 +300,7 @@ local function CreateDropdown()
 	end)
 
 	-- Escape closes it like other windows
-	tinsert(UISpecialFrames, f:GetName())
+	ImprovedForever.Focus.EscapeClose(f)
 	return f
 end
 

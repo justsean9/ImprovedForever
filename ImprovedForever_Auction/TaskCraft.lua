@@ -36,7 +36,7 @@ panel:SetToplevel(true)
 panel:EnableMouse(true)
 panel:SetClampedToScreen(true)
 panel:Hide()
-tinsert(UISpecialFrames, panel:GetName())
+ImprovedForever.Focus.EscapeClose(panel)
 -- Where it sits: as the game's own panels, along the top beside the open
 -- windows, again as they come and go (ImprovedForever's Focus.lua)
 IF.Focus.Dock(panel)

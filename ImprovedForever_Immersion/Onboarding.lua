@@ -493,7 +493,7 @@ headSmall:SetText("Turn your adventure into a cinematic, immersive journey. Here
 ---------------------------------------------------------------------------
 local escape = CreateFrame("Frame", "ImprovedForeverTourEscape", UIParent)
 escape:Hide()
-if _G.UISpecialFrames then table.insert(UISpecialFrames, "ImprovedForeverTourEscape") end
+IF.Focus.EscapeClose(escape)
 
 local function Finish()
     goal = 0

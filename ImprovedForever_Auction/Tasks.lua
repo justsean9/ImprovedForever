@@ -894,8 +894,8 @@ local function CloseMenu()
 end
 
 -- With the mouse: Escape, or a click away from them, closes the menu
-tinsert(UISpecialFrames, menu:GetName())
-tinsert(UISpecialFrames, qtyBox:GetName())
+ImprovedForever.Focus.EscapeClose(menu)
+ImprovedForever.Focus.EscapeClose(qtyBox)
 local closing = false
 menu:SetScript("OnHide", function()
     if closing then return end
