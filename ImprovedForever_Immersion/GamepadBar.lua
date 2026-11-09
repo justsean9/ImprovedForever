@@ -640,8 +640,16 @@ local function SlotCooldown(native)
     end
 end
 
+local OwnCastCooldown        -- (below: a fight's secret cooldown, from your own cast)
+local LearnLength
+
 local function Cooldown(b, native)
     local start, duration = SlotCooldown(native)
+    -- (in a fight the game keeps it secret: your own cast of the slot's spell times it)
+    local own
+    if Secret(start) or Secret(duration) then
+        start, duration, own = OwnCastCooldown(native)
+    end
     -- The global cooldown (the "GCD" setting, off by default): just the swipe over the tile,
     -- none of a real cooldown's time, beat or end flash. A real cooldown on the tile wins.
     local number = not (Secret(start) or Secret(duration)) and type(start) == "number"
@@ -675,6 +683,7 @@ local function Cooldown(b, native)
         b.cdStart, b.cdDuration = start, duration
         b.cdUntil = start + duration
         b.cooldown:SetCooldown(start, duration)
+        if not own then LearnLength(native, duration) end
     end
 end
 
@@ -804,6 +813,42 @@ local function SlotSpellName(native)
         return C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(id) or GetSpellInfo(id)
     end)
     return ok and name or nil
+end
+
+-- A cooldown in a fight: the game keeps its times secret, your own casts stay readable
+-- (UNIT_SPELLCAST_SUCCEEDED). The cast's time and the spell's length (learnt out of the fight,
+-- else its base one) stand in for it. A spell shared with another (the shocks) isn't seen.
+local castAt, castLength = {}, {}
+local ownCasts = CreateFrame("Frame")
+ownCasts:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+ownCasts:SetScript("OnEvent", function(_, _, _, _, spellID)
+    if Secret(spellID) or type(spellID) ~= "number" then return end
+    local get = C_Spell and C_Spell.GetSpellName or GetSpellInfo
+    local ok, name = pcall(get, spellID)
+    if ok and type(name) == "string" and not Secret(name) then castAt[name] = GetTime() end
+end)
+
+local function BaseLength(name)
+    local id = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(name)
+    id = id and id.spellID
+    if not (id and GetSpellBaseCooldown) then return nil end
+    local ok, ms = pcall(GetSpellBaseCooldown, id)
+    if not ok or Secret(ms) or type(ms) ~= "number" or ms <= GCD_MAX * 1000 then return nil end
+    return ms / 1000
+end
+
+function LearnLength(native, duration)
+    local name = SlotSpellName(native)
+    if name and duration > GCD_MAX then castLength[name] = duration end
+end
+
+function OwnCastCooldown(native)
+    local name = SlotSpellName(native)
+    local at = name and castAt[name]
+    if not at then return nil end
+    local length = castLength[name] or BaseLength(name)
+    if not length or GetTime() >= at + length then return nil end
+    return at, length, true
 end
 
 -- (the interact button's cast: one begun at something to interact with, a
