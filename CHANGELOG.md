@@ -1,5 +1,37 @@
 # Changelog
 
+## Core 0.15.0
+
+- Escape (and the pad's B) no longer gets blocked by Improved Forever: our windows close on Escape their own way, without tainting the game's.
+
+## Immersion 0.9.0
+
+- **Cast bars under the nameplates**: what a mob or player casts as a thin bar under its health line, with the spell's name and its icon in a round badge (the level circle's twin). Gold for a cast, green draining for a channel, grey when it can't be interrupted, red when it is. Setting: "Nameplate cast bars" (on). `/if platecast` shows a made-up cast on the plates in sight.
+- The gamepad bar shows a spell's cooldown in a fight too (timed from your own cast), and a tile pulses while its spell is being cast, as a cooldown does.
+- The recent loot's item count sits where the bags' free slots count does.
+- Fixed: looting and the B button got "blocked" (SetPreferredGamepadInteractTarget, ClearTarget) after targeting a mob that was casting.
+- Fixed: the game's own cast bar flashing up when your cast was interrupted.
+
+## Auction 0.8.1
+
+- Escape closes the Tasks, vendor Tasks, crafting and confirmation windows without tainting the game's Escape.
+
+## Junk 0.8.1
+
+- The loot window's Destroy prompt and button no longer resize the game's loot window (a possible "blocked" error on closing it).
+
+## Map 0.7.2
+
+- The peek map hides Spoken's Place Story panel again (Spoken renamed it).
+
+## QuestTracker 0.6.5
+
+- Escape closes the tracker's menu without tainting the game's Escape.
+
+## Wheel 0.12.1
+
+- The unit frame scan no longer tests a hidden (secret) visibility, which could taint the game in a fight.
+
 ## Core 0.14.2
 
 - A striped texture for the predictions on Immersion's health and power lines.
