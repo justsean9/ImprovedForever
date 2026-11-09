@@ -1006,7 +1006,11 @@ local function LootPrompt()
         lootPrompt = false
         local loot = _G.LootFrame
         if not loot then return nil end
-        local holder = K.NewFrame("Frame", nil, loot)
+        -- (ours, not a child of the game's loot window: a frame of ours in it, or its legend box
+        -- resized from here, taints the window, and closing it then gets
+        -- SetPreferredGamepadInteractTarget forbidden)
+        local holder = K.NewFrame("Frame", nil, UIParent)
+        holder:SetFrameStrata("FULLSCREEN_DIALOG")
         local ok, prompt = pcall(function()
             local p = K.NewFrame("Frame", nil, holder, "InputPromptOneIconWithTextTemplate")
             p:SetPromptInputIconKey(1, _G.GAMEPAD_FACE_TOP or LOOT_KEY)
@@ -1023,30 +1027,20 @@ local function LootPrompt()
     return lootPrompt or nil
 end
 
--- Puts it after the last of the game's prompts, the box widened to hold it
+-- Puts it just past the game's legend box, level with its prompts (the box itself left as it is)
 local function PlaceLootPrompt(holder, box)
-    local width = box:GetWidth()
-    -- The game laid its legend out again (or a new box): that's its width
-    if holder.box ~= box or not holder.setWidth or math.abs(width - holder.setWidth) > 0.5 then
-        holder.box, holder.baseWidth = box, width
+    if holder.box ~= box then
+        holder.box = box
         holder.prompt:ClearAllPoints()
-        holder.prompt:SetPoint("TOPLEFT", box, "TOPLEFT", width - LEGEND_PAD + PROMPT_GAP, -LEGEND_PAD)
+        holder.prompt:SetPoint("TOPLEFT", box, "TOPRIGHT", PROMPT_GAP - LEGEND_PAD, -LEGEND_PAD)
     end
-    holder:SetFrameLevel(box:GetFrameLevel() + 2)
-    holder.setWidth = holder.baseWidth + PROMPT_GAP + holder.prompt:GetWidth()
-    box:SetWidth(holder.setWidth)
 end
 
 local function HideLootPrompt()
     local holder = lootPrompt
     if not holder or not holder:IsShown() then return end
     holder:Hide()
-    -- The box's own width back, unless the game has set it since
-    local box = holder.box
-    if box and holder.setWidth and math.abs(box:GetWidth() - holder.setWidth) <= 0.5 then
-        box:SetWidth(holder.baseWidth)
-    end
-    holder.box, holder.setWidth = nil, nil
+    holder.box = nil
 end
 
 local lootFull, freeAtError = false, 0
@@ -1111,7 +1105,9 @@ local lootButton
 local function LootButton()
     local loot = _G.LootFrame
     if not lootButton and loot then
-        lootButton = K.NewFrame("Button", nil, loot, "UIPanelButtonTemplate")
+        -- (ours, under it: not a child of the game's window, Taint)
+        lootButton = K.NewFrame("Button", nil, UIParent, "UIPanelButtonTemplate")
+        lootButton:SetFrameStrata("FULLSCREEN_DIALOG")
         lootButton:SetSize(120, 24)
         lootButton:SetPoint("TOP", loot, "BOTTOM", 0, -4)
         lootButton:SetText("Destroy Junk")
