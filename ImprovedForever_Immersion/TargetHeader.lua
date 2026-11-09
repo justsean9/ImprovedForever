@@ -443,7 +443,10 @@ function cast:Start(kind, text, texture, startMs, endMs, notInterruptible)
     -- (plain times: an end of our own too, should an event be missed)
     self.endMs = not Secret(endMs) and type(endMs) == "number" and endMs or nil
     self.startMs = not Secret(startMs) and type(startMs) == "number" and startMs or nil
-    self.color = CAST_COLORS[(notInterruptible == true) and "shield" or kind] or CAST_COLORS.cast
+    -- (can't be interrupted: secret in a fight, never compared (a compare of a secret taints, and the
+    -- loot window's close then gets SetPreferredGamepadInteractTarget forbidden); the shield shows it)
+    local shield = not Secret(notInterruptible) and notInterruptible == true
+    self.color = CAST_COLORS[shield and "shield" or kind] or CAST_COLORS.cast
     Try(self.text.SetText, self.text, text)
     self.text:Show()
     if not Try(self.icon.SetTexture, self.icon, texture) then self.icon:SetTexture(nil) end

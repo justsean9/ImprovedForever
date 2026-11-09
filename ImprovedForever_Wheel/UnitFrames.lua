@@ -88,7 +88,10 @@ local scanner = CreateFrame("Frame")
 scanner:Hide()
 
 local function Walk(found, frame, depth, started)
-    if depth > MAX_DEPTH or Skipped(frame) or not IsVisible(frame) then return started end
+    if depth > MAX_DEPTH or Skipped(frame) then return started end
+    -- (a frame's visibility can be secret (a restricted frame's): never tested, skipped)
+    local visible = IsVisible(frame)
+    if Secret(visible) or not visible then return started end
     if GetObjectType(frame) == "Button" then
         local unit = GetAttribute(frame, "unit")
         if type(unit) == "string" and not Secret(unit) then
