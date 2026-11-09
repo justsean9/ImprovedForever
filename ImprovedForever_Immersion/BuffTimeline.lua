@@ -365,6 +365,9 @@ local function StyleButton(b, harmful, size)
         b.tipIcon, b.harmful = icon, harmful
         local hit = CreateFrame("Frame", nil, b)
         hit:SetAllPoints(b)
+        -- (above whatever of ours or the game's lies over the row, which took the mouse first)
+        hit:SetFrameStrata("HIGH")
+        hit:SetFrameLevel(200)
         hit:EnableMouse(true)
         hit:SetScript("OnEnter", AuraTip)
         hit:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -471,6 +474,8 @@ local function DemoShow()
             f.border:SetDrawLayer("BACKGROUND", -1)
             f.hit = CreateFrame("Frame", nil, f)
             f.hit:SetAllPoints(f)
+            f.hit:SetFrameStrata("HIGH")
+            f.hit:SetFrameLevel(200)
             f.hit:EnableMouse(true)
             f.hit:SetScript("OnEnter", function(self)
                 local data = self:GetParent().data
@@ -549,6 +554,23 @@ local function RealReport()
         Print("  aura " .. i .. ": icon " .. tostring(Secret(d.icon) and "secret" or d.icon))
     end
 end
+
+-- /if mousefocus: the frames under the mouse, top first, said in the chat after 3 seconds (rest the mouse
+-- over what doesn't answer, then read what really has it)
+IF.AddCommand("mousefocus", function()
+    IF.Print("mouse focus: in 3 seconds, keep the mouse still")
+    C_Timer.After(3, function()
+        local list = GetMouseFoci and GetMouseFoci() or { GetMouseFocus and GetMouseFocus() }
+        if #list == 0 then return IF.Print("mouse focus: none") end
+        for i, f in ipairs(list) do
+            local name = f.GetName and f:GetName() or "?"
+            local parent = f.GetParent and f:GetParent()
+            local pname = parent and parent.GetName and parent:GetName() or "?"
+            IF.Print(string.format("  %d: %s (parent %s) strata %s level %s", i, tostring(name), tostring(pname),
+                tostring(f.GetFrameStrata and f:GetFrameStrata()), tostring(f.GetFrameLevel and f:GetFrameLevel())))
+        end
+    end)
+end, ": which frame has the mouse after 3 seconds")
 
 IF.AddCommand("bufftest", function()
     if demoUntil then
