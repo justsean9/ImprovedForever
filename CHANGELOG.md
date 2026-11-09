@@ -2,6 +2,7 @@
 
 ## Immersion 0.5.1
 
+- `/if bufftest` shows made-up buffs and debuffs in the buff row (60 seconds, with tooltips), to try its look without a real aura on you, and says in the chat what the row's real buttons hold.
 - The target's buffs and debuffs under the header are cleared and filled again when you change target (they kept the earlier target's icons).
 - The menu button's list greys out the entries you can't use yet (Talents before their level, a guild you aren't in...), and has an "Improved Forever" entry that opens this panel.
 - The buff row along the bottom shows a buff's or debuff's tooltip when the mouse is over it (out of a fight).

@@ -431,6 +431,114 @@ local function ShowBuffs(on)
 end
 
 ---------------------------------------------------------------------------
+-- /if bufftest: made-up buffs and debuffs in the row's place, to try its look and its tooltips without a
+-- real aura on you; and what the real buttons hold, said in the chat. Again, or 60 seconds: gone.
+---------------------------------------------------------------------------
+local DEMO = {
+    { name = "Mark of the Wild", icon = "Interface\\Icons\\Spell_Nature_Regeneration", left = 1800,
+        text = "Increases armor, and all stats. (a made-up buff)" },
+    { name = "Power Word: Fortitude", icon = "Interface\\Icons\\Spell_Holy_WordFortitude", left = 1800,
+        text = "Increases Stamina. (a made-up buff)" },
+    { name = "Rend", icon = "Interface\\Icons\\Ability_Gouge", left = 12, harmful = true,
+        text = "Bleeding for damage. (a made-up debuff)" },
+    { name = "Curse of Weakness", icon = "Interface\\Icons\\Spell_Shadow_CurseOfMannoroth", left = 45, harmful = true,
+        text = "Reduces Strength. (a made-up debuff)" },
+}
+local demoFrames, demoUntil = {}, nil
+
+local function DemoHide()
+    demoUntil = nil
+    for _, f in ipairs(demoFrames) do f:Hide() end
+end
+
+local function DemoShow()
+    local size = Size()
+    local x = BuffLane()
+    local y = IN.BOTTOM + size
+    local debuffs = false
+    for i, d in ipairs(DEMO) do
+        local f = demoFrames[i]
+        if not f then
+            f = CreateFrame("Frame", nil, UIParent)
+            f:SetFrameStrata("LOW")
+            f.icon = f:CreateTexture(nil, "ARTWORK")
+            f.icon:SetAllPoints()
+            f.time = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            f.time:SetPoint("BOTTOM", f, "TOP", 0, 1)
+            f.border = f:CreateTexture(nil, "OVERLAY")
+            f.border:SetPoint("CENTER")
+            f.border:SetColorTexture(0.8, 0.1, 0.1, 0.9)
+            f.border:SetDrawLayer("BACKGROUND", -1)
+            f.hit = CreateFrame("Frame", nil, f)
+            f.hit:SetAllPoints(f)
+            f.hit:EnableMouse(true)
+            f.hit:SetScript("OnEnter", function(self)
+                local data = self:GetParent().data
+                GameTooltip:SetOwner(self, "ANCHOR_TOP")
+                GameTooltip:SetText(data.name)
+                GameTooltip:AddLine(data.text, 1, 1, 1, true)
+                GameTooltip:Show()
+            end)
+            f.hit:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            demoFrames[i] = f
+        end
+        f.data = d
+        if d.harmful and not debuffs then
+            debuffs = true
+            x = x + GROUP_GAP
+        end
+        f:SetSize(size, size)
+        f.icon:SetTexture(d.icon)
+        f.border:SetSize(size * BORDER_OUT, size * BORDER_OUT)
+        f.border:SetShown(d.harmful and true or false)
+        f.time:SetText(d.left >= 60 and (math.ceil(d.left / 60) .. "m") or (d.left .. "s"))
+        f:ClearAllPoints()
+        f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
+        f:Show()
+        x = x + size + SPACING
+    end
+    demoUntil = GetTime() + 60
+end
+
+-- (what the real container and its buttons hold: for finding why a tooltip doesn't show)
+local function RealReport()
+    local c = container
+    if not c then return IF.Print("buff row: no container (this client has none, or it was never shown)") end
+    local n = c:GetNumChildren()
+    IF.Print(string.format("buff row: container %s, %d buttons, mouse %s", c:IsShown() and "shown" or "hidden", n,
+        tostring(c:IsMouseEnabled())))
+    for i = 1, n do
+        local b = select(i, c:GetChildren())
+        local hit = b:GetNumChildren() > 0 and select(1, b:GetChildren())
+        local tex = b.tipIcon and b.tipIcon:GetTexture()
+        IF.Print(string.format("  %d: shown %s, our tooltip frame %s, mouse %s, icon %s", i, tostring(b:IsShown()),
+            hit and "yes" or "NO", hit and tostring(hit:IsMouseEnabled()) or "-",
+            tex == nil and "none" or (Secret(tex) and "secret" or tostring(tex))))
+    end
+    local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
+    for i = 1, 5 do
+        local ok, d = pcall(get, "player", i, "HELPFUL")
+        if not ok or type(d) ~= "table" then break end
+        IF.Print("  aura " .. i .. ": icon " .. tostring(Secret(d.icon) and "secret" or d.icon))
+    end
+end
+
+IF.AddCommand("bufftest", function()
+    if demoUntil then
+        DemoHide()
+        IF.Print("buff test: off")
+        return
+    end
+    DemoShow()
+    RealReport()
+    IF.Print("buff test: made-up buffs and debuffs shown for 60 seconds (hover them for a tooltip); /if bufftest again hides them")
+end, ": made-up buffs and debuffs in the buff row, and what its real buttons hold")
+
+IN.Watcher("buff demo", 1, function()
+    if demoUntil and GetTime() > demoUntil then DemoHide() end
+end)
+
+---------------------------------------------------------------------------
 -- Right: the cooldowns of the gamepad bar's slots (the crossbar's page
 -- shown, every bar) and your on-use trinkets, while cooling; each as it
 -- comes ready kept READY_FLASH seconds, flashing
