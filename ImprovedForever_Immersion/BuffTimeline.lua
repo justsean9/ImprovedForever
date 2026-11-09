@@ -313,7 +313,8 @@ local DEBUFF_MAX = 8
 
 -- A buff's or debuff's tooltip over the mouse: the game's container hands its buttons no tooltip, so the
 -- aura is found by its icon among yours (nothing in a fight, when the auras' details are secret)
-local function AuraTip(self)
+local function AuraTip(hit)
+    local self = hit:GetParent()
     local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
     if not (get and self.tipIcon) then return end
     local texture = self.tipIcon:GetTexture()
@@ -323,7 +324,7 @@ local function AuraTip(self)
         local ok, data = pcall(get, "player", i, filter)
         if not ok or type(data) ~= "table" then break end
         if not Secret(data.icon) and data.icon == texture then
-            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetOwner(hit, "ANCHOR_TOP")
             if pcall(GameTooltip.SetUnitAura, GameTooltip, "player", i, filter) then
                 GameTooltip:Show()
             else
@@ -338,10 +339,7 @@ local function StyleButton(b, harmful, size)
     b:SetSize(size, size)
     local icon = b:CreateTexture(nil, "ARTWORK")
     icon:SetAllPoints()
-    b.tipIcon, b.harmful = icon, harmful
-    b:EnableMouse(true)
-    b:SetScript("OnEnter", AuraTip)
-    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     local time = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     time:SetPoint("BOTTOM", b, "TOP", 0, 1)
     local count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
@@ -361,6 +359,16 @@ local function StyleButton(b, harmful, size)
             showWhenHarmful = true, showWithoutDispelType = true,
         })
     end
+    -- (the tooltip: a frame of ours over the button takes the mouse, so the game's button is left as it
+    -- is; in a pcall so that it can never stop the button being styled)
+    pcall(function()
+        b.tipIcon, b.harmful = icon, harmful
+        local hit = CreateFrame("Frame", nil, b)
+        hit:SetAllPoints(b)
+        hit:EnableMouse(true)
+        hit:SetScript("OnEnter", AuraTip)
+        hit:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end)
 end
 
 -- (the buffs' lane: after the minion card, to the party's row)
