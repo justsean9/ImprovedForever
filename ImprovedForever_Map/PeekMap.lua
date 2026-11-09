@@ -130,7 +130,8 @@ end
 -- Spoken's place story panel and its side tab: under the gamepad UI they are
 -- UIParent's, shown with the map, so they stay over a peek. Faded by an
 -- animation of ours (their own alpha is Spoken's to set).
-local SPOKEN_PANELS = { "SpokenZonesPanel", "SpokenZonesPanelToggle" }
+-- (named SpokenZones... in older Spoken, SpokenPlaces... now)
+local SPOKEN_PANELS = { "SpokenPlacesPanel", "SpokenPlacesPanelToggle", "SpokenZonesPanel", "SpokenZonesPanelToggle" }
 
 local function FadeSpoken(hide)
     for _, name in ipairs(SPOKEN_PANELS) do
