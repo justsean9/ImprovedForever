@@ -26,6 +26,32 @@ local menu = IF.Menu
 
 local UI = IF.UI
 
+-- A button in the panel's plate look (the legend's: dark plate, brown-gold edge, cream words; the edge and
+-- the words go gold under the mouse): the one look for this page's buttons. .label is its text.
+local function PlateButton(parent, width, height, text)
+    local b = K.NewFrame("Button", nil, parent, "BackdropTemplate")
+    b:SetSize(width, height)
+    b:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12, insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    b:SetBackdropColor(0.05, 0.04, 0.03, 0.92)
+    b:SetBackdropBorderColor(0.45, 0.38, 0.25, 1)
+    b.label = K.ChatText(b, 14, KC.tab or { 0.92, 0.86, 0.7 })
+    b.label:SetPoint("CENTER", b, "CENTER", 0, 0)
+    b.label:SetText(text or "")
+    b:SetScript("OnEnter", function(self)
+        self:SetBackdropBorderColor(1, 0.82, 0.3, 1)
+        self.label:SetTextColor(1, 0.82, 0.3)
+    end)
+    b:SetScript("OnLeave", function(self)
+        self:SetBackdropBorderColor(0.45, 0.38, 0.25, 1)
+        local c = KC.tab or { 0.92, 0.86, 0.7 }
+        self.label:SetTextColor(c[1], c[2], c[3])
+    end)
+    return b
+end
+
 local SIDE_W = 200
 local BOX_W = 380                   -- the rename box over the wheel
 local PICKER_ROWS = 7
@@ -59,8 +85,6 @@ function W:Entries()
     if #MW.List() < MW.MAX then
         entries[#entries + 1] = { new = true, label = "+ New wheel" }
     end
-    -- (the last one: the wheel's own settings, its size)
-    entries[#entries + 1] = { settings = true, label = "Settings" }
     return entries
 end
 
@@ -87,7 +111,7 @@ end
 
 -- What the wheel's slots hold right now (a self-filling one: its content)
 local function Slots(wheel)
-    if not wheel or wheel.new or wheel.settings then return {} end
+    if not wheel or wheel.new then return {} end
     return wheel.slots or MW.LiveSlots(wheel)
 end
 
@@ -126,7 +150,7 @@ function W:Build(parent)
         menu.Render()
     end)
     f.side:SetPoint("TOPLEFT", 8, -8)
-    f.side:SetPoint("BOTTOMLEFT", 8, 8)
+    f.side:SetPoint("BOTTOMLEFT", 8, 44)
     f.side:EnableMouseWheel(true)
     f.side:SetScript("OnMouseWheel", function(_, delta)
         if MW.renaming then return end
@@ -266,30 +290,38 @@ function W:Build(parent)
 
     -- Gamepad mode off: under the wheel, a button that hides or shows it
     -- (Square's)
-    f.hideButton = K.Button(f, 14)
-    f.hideButton:SetSize(160, 30)
+    f.hideButton = PlateButton(f, 160, 30, "Hide wheel")
     f.hideButton:SetPoint("TOP", zone, "BOTTOM", 0, -48)
-    f.hideButton.label:SetText("Hide wheel")
     f.hideButton:SetScript("OnClick", function()
         if MW.renaming then return end
         menu.Disarm()
         W:ToggleHidden(W:Current())
     end)
     f.hideButton:Hide()
-    -- The wheel's size (the "Settings" entry): its value, and a button each side of it for the mouse
-    f.sizeRow = K.NewFrame("Frame", nil, f)
-    f.sizeRow:SetSize(300, 34)
-    f.sizeRow:SetPoint("CENTER", zone, "CENTER", 0, 0)
-    f.sizeLabel = K.ChatText(f.sizeRow, 18, KC.grey)
-    f.sizeLabel:SetPoint("CENTER", f.sizeRow, "CENTER", 0, 0)
-    for _, def in ipairs({ { "LEFT", "-", -5 }, { "RIGHT", "+", 5 } }) do
-        local b = K.Button(f.sizeRow, 16)
-        b:SetSize(38, 32)
-        b:SetPoint(def[1], f.sizeRow, def[1], 0, 0)
-        b.label:SetText(def[2])
-        b:SetScript("OnClick", function() W:SizeStep(def[3]) end)
-    end
-    f.sizeRow:Hide()
+    -- The wheels' settings (their size...): a button under the list, the pad's View button on the legend
+    f.settingsButton = PlateButton(f, SIDE_W, 30, "Settings")
+    f.settingsButton:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 8, 8)
+    f.settingsButton:SetScript("OnClick", function()
+        if MW.renaming then return end
+        menu.Disarm()
+        W:ToggleSettings()
+    end)
+    -- The settings page, shown where the wheel and its detail are (the list stays): a title, then a row
+    -- for each setting in the Settings page's look
+    local pane = K.NewFrame("Frame", nil, f)
+    pane:SetPoint("TOPLEFT", f, "TOPLEFT", 8 + SIDE_W + 6, -8)
+    pane:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, 8)
+    pane.title = K.ChatText(pane, 15, KC.slot)
+    pane.title:SetPoint("TOPLEFT", 4, -4)
+    pane.title:SetText("Wheel")
+    pane.row = IF.FieldRow(pane, 400, function() end, function(_, dir) W:SizeStep(dir * 5) end,
+        function(_, value) W:SizeSet(value) end)
+    pane.row:SetPoint("TOPLEFT", pane, "TOPLEFT", 0, -30)
+    pane.row:SetPoint("RIGHT", pane, "RIGHT", 0, 0)
+    pane.row:SetHeight(70)
+    pane.row.slot = 1
+    pane:Hide()
+    f.pane = pane
 
     -- The name typed in a box over the wheel (a physical keyboard)
     local veil = K.NewFrame("Frame", nil, zone)
@@ -374,6 +406,7 @@ end
 
 function W:Show()
     self.zone = nil
+    self.settings = false
     self.frame:Show()
     self:Select(self.index)
 end
@@ -405,6 +438,7 @@ function W:Select(i)
     local entries = self:Entries()
     i = math.max(1, math.min(i, #entries))
     if i ~= self.index then menu.Disarm() end
+    self.settings = false
     self.index = i
     local wheel = entries[i]
     self.key = wheel and wheel.key
@@ -817,23 +851,31 @@ end
 
 -- The wheel's size, a percent (50 to 150) kept in IF.db.ringScale, applied by Ring.lua
 function W:SizeStep(delta)
+    self:SizeSet((tonumber(IF.db.ringScale) or 100) + delta)
+end
+
+function W:SizeSet(value)
     if IF.InCombat() then return end
-    local size = math.max(50, math.min(150, (tonumber(IF.db.ringScale) or 100) + delta))
-    IF.db.ringScale = size
+    IF.db.ringScale = math.max(50, math.min(150, math.floor(value / 5 + 0.5) * 5))
     IF.ApplyRingScale()
+    menu.Render()
+end
+
+function W:ToggleSettings()
+    self.settings = not self.settings
     menu.Render()
 end
 
 function W:Press(name)
     local wheel = self:Current()
-    -- "Settings" selected (the last entry): left / right change the size, held faster
-    if wheel and wheel.settings and self.zone == nil then
+    -- The settings shown on the right: left / right change the size, Circle goes back to the wheel
+    if self.settings and self.zone == nil then
         if name == "LEFT" or name == "RIGHT" then
             self:SizeStep(name == "LEFT" and -5 or 5)
-            return true
+        elseif name == "B" then
+            self.settings = false
+            menu.Render()
         end
-        if name == "B" then return false end
-        menu.Render()
         return true
     end
     if self.zone == "popup" then
@@ -893,11 +935,19 @@ function W:Press(name)
     return true
 end
 
+-- The pad's View button: the wheels' settings
+function W:OnTouch()
+    if MW.renaming or self.zone ~= nil then return end
+    menu.Disarm()
+    self:ToggleSettings()
+end
+
 function W:Help()
     local H = K.H
     local wheel = self:Current()
-    if wheel and wheel.settings and self.zone == nil then
-        return { H({ "LS" }, "Wheel"), H({ "DPAD_LR" }, "Size", "RIGHT"), H({ "RS" }, "Tab"), H({ "B" }, "Close", "B") }
+    if self.settings and self.zone == nil then
+        return { H({ "LS" }, "Wheel"), H({ "DPAD_LR" }, "Size", "RIGHT"), H({ "BACK" }, "Wheel", "TOUCH"),
+            H({ "RS" }, "Tab"), H({ "B" }, "Back", "B") }
     end
     if self.zone == "rename" then
         local hints = { H({ "DPAD_LR" }, self.typing == "phrase" and "Phrase" or "Name", "RIGHT") }
@@ -928,6 +978,7 @@ function W:Help()
         local hideVerb = wheel.hidden and "Show" or "Hide"
         hints[#hints + 1] = H({ "X" }, wheel.id and (hideVerb .. " / Hold to Delete") or hideVerb, "X")
     end
+    hints[#hints + 1] = H({ "BACK" }, "Settings", "TOUCH")
     hints[#hints + 1] = H({ "RS" }, "Tab")
     hints[#hints + 1] = H({ "B" }, "Close", "B")
     return hints
@@ -954,8 +1005,7 @@ function W:Render()
     f.side:Render(IF.GlyphText("LS", 18) .. " Wheels", lines, self.index, self.zone == nil)
 
     -- "New wheel" selected: an empty wheel and what Cross does
-    local isNew = wheel == nil or wheel.new or wheel.settings
-    local isSettings = wheel ~= nil and wheel.settings == true
+    local isNew = wheel == nil or wheel.new
     local slots = Slots(wheel)
     local max = isNew and PER_PAGE or wheel.max
     if self.slot > max then self.slot = 1 end
@@ -1091,8 +1141,12 @@ function W:Render()
     f.hubName:SetSize(hub and 58 or 80, 30)
     f.count:SetText(isNew and "" or format("%d / %d", Count(wheel), max))
 
-    -- Right: the picker (faded unless it has the focus), or the detail
-    if Editable(wheel) then
+    -- Right: the settings, or the picker (faded unless it has the focus), or the detail
+    local settings = self.settings and self.zone == nil
+    if settings then
+        self.picker:Close()
+        self.detail:Hide()
+    elseif Editable(wheel) then
         self.detail:Hide()
         if not self.picker:IsOpen() then self:OpenPicker(wheel) end
         self.picker:Show()
@@ -1100,12 +1154,7 @@ function W:Render()
     else
         self.picker:Close()
         self.detail:Show()
-        if isSettings then
-            self.detail:Set({ title = "Settings", tag = "Wheels", tagColor = KC.slot,
-                body = "How big the wheel is on the screen, in percent (50 to 150): smaller if it covers too much. "
-                    .. "It changes out of combat.",
-                extra = IF.PadText("{DPAD_LR} change the size.") })
-        elseif isNew then
+        if isNew then
             local kinds = KD.Available()
             self.detail:Set({ title = "New wheel: " .. newKind.label,
                 tag = newKind.slots and "Your slots" or "Fills itself", tagColor = KC.slot,
@@ -1119,12 +1168,18 @@ function W:Render()
         end
     end
     -- (only with the game's gamepad mode off: on the pad, Square)
-    f.hideButton:SetShown(not isNew and not IF.Input.PadEnabled() and self.zone == nil)
+    f.hideButton:SetShown(not isNew and not IF.Input.PadEnabled() and self.zone == nil and not settings)
+    f.zone:SetShown(not settings)
+    f.pane:SetShown(settings)
+    if settings then
+        local r = f.pane.row
+        r.name:SetText("Wheel size")
+        r.line:SetText("How big the wheel is, in percent: smaller if it covers too much of the screen. Out of combat only.")
+        r:SetControl({ slider = { min = 50, max = 150, step = 5, format = function(n) return n .. "%" end,
+            get = function() return tonumber(IF.db.ringScale) or 100 end } }, "slider", true, false)
+        r.focus:Light(IF.Input.Pad(), false)
+    end
     if not isNew then f.hideButton.label:SetText(wheel.hidden and "Show wheel" or "Hide wheel") end
-    f.sizeRow:SetShown(isSettings and self.zone == nil)
-    f.sizeLabel:SetText("Wheel size: " .. (tonumber(IF.db.ringScale) or 100) .. "%")
-    -- (the wheel's picture and its buttons give way to the settings)
-    f.zone:SetShown(not isSettings)
     -- The box over the wheel: naming
     f.veil:SetShown(self.zone == "rename")
     self.box:SetShown(self.zone == "rename")

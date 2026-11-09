@@ -352,6 +352,8 @@ local function FieldRow(parent, width, onClick, onStep, onSlide)
     end
     return r
 end
+-- (a field's row for other pages: the Wheels page's Settings shows one on its right)
+IF.FieldRow = FieldRow
 
 ---------------------------------------------------------------------------
 -- The dropdown's list, as the game's own menu (Blizzard_Menu's look: its
