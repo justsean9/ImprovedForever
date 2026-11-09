@@ -22,6 +22,7 @@ local function Style(b)
     pcall(b.SetIcon, b, icon)
     pcall(b.SetApplicationCount, b, count)
     pcall(b.SetDurationText, b, time)
+    pcall(b.SetTooltipAnchorPoint, b, "ANCHOR_TOP")
     local styles = Enum.CustomAuraButtonDispelTypeTextureStyle
     local border = b:CreateTexture(nil, "OVERLAY")
     border:SetPoint("CENTER")

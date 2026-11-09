@@ -324,6 +324,8 @@ local function StyleButton(b, harmful, size)
     pcall(b.SetIcon, b, icon)
     pcall(b.SetDurationText, b, time)
     pcall(b.SetApplicationCount, b, count)
+    -- (the game's tooltip for the aura, over the icon: the row sits at the bottom)
+    pcall(b.SetTooltipAnchorPoint, b, "ANCHOR_TOP")
     if harmful then
         -- (the game's debuff border, its kind's)
         local styles = Enum.CustomAuraButtonDispelTypeTextureStyle
