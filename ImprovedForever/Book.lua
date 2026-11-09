@@ -537,6 +537,7 @@ function BK.New(opts)
     -- A list's entry: its icon in its frame, its name, a line under it; the
     -- spellbook's faint backplate behind it, full under the focus
     local cells = {}
+    local dropdown            -- (the page's filters: made below, IF.Dropdown)
     for i = 1, CELLS do
         local c = K.NewFrame("Button", nil, page)
         c:SetSize(CELL_W, CELL_H - 6)
@@ -634,7 +635,7 @@ function BK.New(opts)
 
     -- The page's filters (page:filter()): a dropdown over the page, under
     -- the title bar
-    local dropdown = IF.Dropdown(window, { maxHeight = 470 })
+    dropdown = IF.Dropdown(window, { maxHeight = 470 })
     dropdown.frame:SetPoint("TOP", window, "TOP", 0, -58)
 
     local legend = IF.InputLegend(window)
@@ -881,6 +882,74 @@ function BK.New(opts)
     field:SetScript("OnEditFocusGained", function() fieldHint:Hide() end)
     field:SetScript("OnEditFocusLost", function(self) fieldHint:SetShown((self:GetText() or "") == "") end)
 
+    -- With the mouse the search (opts.search) is a box at the window's top right, as the
+    -- spellbook's: typing in it opens the search page and fills its field; the pad's is Triangle
+    local searchBox
+    if opts.search then
+        local okBox, box = pcall(K.NewFrame, "EditBox", (opts.name or "ImprovedForeverBook") .. "SearchBox", window,
+            "SearchBoxTemplate")
+        if okBox and box then
+            searchBox = box
+            box:SetSize(190, 20)
+            box:SetPoint("TOPRIGHT", window, "TOPRIGHT", -28, -32)
+            box:SetAutoFocus(false)
+            box:SetMaxLetters(MAX_TYPED)
+            -- (emptied: back from the search page to the page before it, as the spellbook's
+            -- list comes back)
+            local function Emptied()
+                local p = Top()
+                if p and p.field and #book.stack > 1 then book:Back() end
+            end
+            box:HookScript("OnTextChanged", function(self, user)
+                if not user then return end
+                local text = self:GetText() or ""
+                local p = Top()
+                if text == "" and p and p.field then return Emptied() end
+                if not (p and p.field) then
+                    if text == "" or not opts.search.open then return end
+                    book.fromSearchBox = true
+                    opts.search.open(book)
+                    book.fromSearchBox = nil
+                    p = Top()
+                end
+                if p and p.field then Typed(p, text) end
+            end)
+            box:HookScript("OnEnterPressed", function(self) self:ClearFocus() end)
+            if box.clearButton then box.clearButton:HookScript("OnClick", Emptied) end
+            box:Hide()
+        end
+    end
+
+    -- With the mouse a page's filters (page:filter()) are the game's filter button, left of the
+    -- search box (as the spellbook's and the collections'); the pad's are L3
+    local filterButton
+    do
+        local okButton, b = pcall(K.NewFrame, "DropdownButton", nil, window, "WowStyle1FilterDropdownTemplate")
+        if not (okButton and b) then
+            b = K.NewFrame("Button", nil, window, "UIPanelButtonTemplate")
+            b:SetSize(90, 22)
+            b:SetText(FILTER or "Filter")
+        end
+        if searchBox then
+            b:SetPoint("RIGHT", searchBox, "LEFT", -10, 0)
+        else
+            b:SetPoint("TOPRIGHT", window, "TOPRIGHT", -28, -30)
+        end
+        b:SetScript("OnMouseDown", function()
+            local p = Top()
+            local filter = p and p.filter and p:filter()
+            if not (filter and filter.build) then return end
+            if dropdown:IsShown() then return dropdown:Close() end
+            if field:HasFocus() then field:ClearFocus() end
+            if searchBox and searchBox:HasFocus() then searchBox:ClearFocus() end
+            dropdown:Open(filter.build, { onClose = function() book:Render() end })
+            book:Render()
+        end)
+        if b.ResetButton then b.ResetButton:Hide() end
+        b:Hide()
+        filterButton = b
+    end
+
     -- L1 / R1: the page before / after (its first entry)
     local function Turn(dir)
         local p = Top()
@@ -927,7 +996,7 @@ function BK.New(opts)
             keyAt, keyCol = 1, 0
         end
         self:Render()
-        if p.field and not IF.Input.Pad() then field:SetFocus() end
+        if p.field and not IF.Input.Pad() and not self.fromSearchBox then field:SetFocus() end
     end
 
     -- The page on top
@@ -988,7 +1057,7 @@ function BK.New(opts)
         if Typing(p) then
             local typing = { { glyph = "DPAD", text = "Move" }, { "PAD1", "A", "Type", pad = true },
                 { "PAD3", "X", "Delete", pad = true }, { "PAD4", "Y", "Space", pad = true } }
-            if filter then typing[#typing + 1] = { "PADLSTICK", "LS", filter.text or "Filters" } end
+            if filter then typing[#typing + 1] = { "PADLSTICK", "LS", filter.text or "Filters", pad = true } end
             local hint = switch:Hint()
             if hint then typing[#typing + 1] = hint end
             typing[#typing + 1] = { "PAD2", "B", #view.cells > 0 and "Done" or #book.stack > 1 and "Back" or "Close" }
@@ -1014,13 +1083,17 @@ function BK.New(opts)
         if p.field then
             defs[#defs + 1] = { "PAD4", "Y", "Type", pad = true }
         elseif opts.search then
-            defs[#defs + 1] = { "PAD4", "Y", opts.search.text or "Search" }
+            -- (with the mouse: the search box at the top right instead)
+            defs[#defs + 1] = { "PAD4", "Y", opts.search.text or "Search", pad = true }
         end
-        if filter then defs[#defs + 1] = { "PADLSTICK", "LS", filter.text or "Filters" } end
+        -- (with the mouse: the filter button at the top right instead)
+        if filter then defs[#defs + 1] = { "PADLSTICK", "LS", filter.text or "Filters", pad = true } end
         local hint = not tabbed and switch:Hint()
         if hint then defs[#defs + 1] = hint end
-        defs[#defs + 1] = { "PAD2", "B", p.tab ~= "notes" and (opts.notes or "Notes")
-            or #book.stack > 1 and "Back" or "Close" }
+        local back = p.tab ~= "notes" and (opts.notes or "Notes") or #book.stack > 1 and "Back" or "Close"
+        -- (with the mouse: Close is the window's own close button and Escape; a field's page goes
+        -- back as its search box is emptied)
+        defs[#defs + 1] = { "PAD2", "B", back, pad = (back == "Close" or (p.field ~= nil and back == "Back")) or nil }
         return defs
     end
 
@@ -1075,6 +1148,15 @@ function BK.New(opts)
     -- empty, the caret while the pad types
     local function RenderField(p)
         local f = p.field and p:field()
+        -- (the mouse's search box: shown with the mouse, its text the search page's while not typed in)
+        filterButton:SetShown(not IF.Input.Pad() and p.filter ~= nil and p:filter() ~= nil)
+        if searchBox then
+            searchBox:SetShown(not IF.Input.Pad())
+            if not searchBox:HasFocus() then
+                local want = f and f.text or ""
+                if (searchBox:GetText() or "") ~= want then searchBox:SetText(want) end
+            end
+        end
         title:SetShown(not f)
         if not f then
             if field:HasFocus() then field:ClearFocus() end
