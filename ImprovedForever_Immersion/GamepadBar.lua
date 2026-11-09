@@ -45,7 +45,7 @@ local DIRS = { { -1, 0 }, { 0, 1 }, { 1, 0 }, { 0, -1 } }
 local FACE_KEYS = { "PAD3", "PAD4", "PAD2", "PAD1" }
 local DPAD_KEYS = { "PADDLEFT", "PADDUP", "PADDRIGHT", "PADDDOWN" }
 
--- The tiles' style (the setting padStyle, GB.SetStyle):
+-- The tiles' style (GB.SetStyle; only the diamond now):
 -- * diamond, as Hogwarts Legacy's: the game's square slot turned a quarter
 --   of a right angle, cut by the game's diamond mask; the four edge to edge
 --   as one big diamond;
@@ -65,11 +65,9 @@ local CLASS_GAP = 10    -- (the class actions' tiles off their group's)
 local STYLES = {
     diamond = { slot = "squareslot", mask = "progress-bar-diamond-pip-mask", turn = math.pi / 4, pointed = true,
         upright = 0.5 },
-    square = { slot = "squareslot", mask = "SquareMask", turn = 0, grid = true, upright = 0.72 },
-    circle = { slot = "circleslot", mask = "CircleMask", turn = 0, round = true, upright = 0.7 },
 }
-GB.STYLE_ORDER = { "diamond", "square", "circle" }
-local style, styleName = STYLES.square, "square"
+-- (the diamond is the one look: the squares and the circles were dropped; the style code below stays general)
+local style, styleName = STYLES.diamond, "diamond"
 
 -- (every size table made, so a new style reshapes them all)
 local dims = setmetatable({}, { __mode = "k" })
@@ -1508,7 +1506,7 @@ end
 
 local function Watch()
     if not IF.db then return end
-    GB.SetStyle(IN.Settings().padStyle)
+    GB.SetStyle("diamond")
     local pu = PageUnit()
     local main = GamepadMainActionBarFrame
     local wanted = IN.Settings().pad and not UF.EditMode()
