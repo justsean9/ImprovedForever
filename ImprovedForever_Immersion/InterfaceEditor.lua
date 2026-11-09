@@ -84,6 +84,17 @@ local ITEMS = {
             .. "the game's own.",
     }, Toggle("nameplates", "Nameplates", function() IN.Nameplates.Apply() end)),
     Item({
+        key = "nameplateHideBar", group = "top", section = "Nameplates", label = "Hide nameplate health bar",
+        tip = "Hides the thin health line and the level circle on the nameplates: the name alone, in the line's place. "
+            .. "Needs the nameplates on.",
+    }, Toggle("nameplateHideBar", "Hide nameplate health bar", function() IN.Nameplates.Apply() end)),
+    Item({
+        key = "nameplateFriendlyNPCs", group = "top", section = "Nameplates", label = "Friendly NPC nameplates",
+        tip = "Plates over friendly NPCs (vendors, quest givers, guards) in the same look, instead of the "
+            .. "game's plain green name. Turns the game's friendly NPC nameplates on; off puts your own "
+            .. "choice back. Needs the nameplates on.",
+    }, Toggle("nameplateFriendlyNPCs", "Friendly NPC nameplates", function() IN.Nameplates.Apply() end)),
+    Item({
         key = "nameplateDebuffs", group = "top", section = "Nameplates", label = "Nameplate debuffs",
         tip = "Your debuffs on a mob as small icons under its nameplate, with their time left and stacks. "
             .. "Needs the nameplates on.",

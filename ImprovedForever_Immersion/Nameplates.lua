@@ -18,9 +18,10 @@ local Try, Flag, Secret = UF.Try, UF.Flag, UF.Secret
 
 local W, LINE_H, BADGE = 110, 4, 20
 local TRACK = { 0, 0, 0, 0.55 }
-local NAME_SIZE = 13
+local NAME_SIZE = 17
 local STEP = 0.1
 local OTHER_SCALE, OTHER_ALPHA = 0.8, 0.85
+local PLATE_DROP = 34                -- (ours sits this far under the game's plate centre: closer to the head)
 local FADE_SPEED = 8                    -- (how fast alpha and size ease)
 
 ---------------------------------------------------------------------------
@@ -36,6 +37,7 @@ local function Build()
     p:Hide()
     local track = p:CreateTexture(nil, "BACKGROUND")
     track:SetAllPoints()
+    p.track = track
     track:SetColorTexture(TRACK[1], TRACK[2], TRACK[3], TRACK[4])
     p.bar = CreateFrame("StatusBar", nil, p)
     p.bar:SetAllPoints()
@@ -44,11 +46,12 @@ local function Build()
     p.bar:SetValue(1)
     p.name = HS.Text(p, HS.FONT, NAME_SIZE, HS.GOLD[1], HS.GOLD[2], HS.GOLD[3])
     p.name:SetPoint("BOTTOM", p, "TOP", 0, 3)
-    p.name:SetWidth(W * 1.6)
+    p.name:SetWidth(W * 2.4)
     local badge = p:CreateTexture(nil, "OVERLAY", nil, 2)
     badge:SetAtlas("UI-HUD-UnitFrame-SmallCircle")
     badge:SetSize(BADGE, BADGE)
     badge:SetPoint("LEFT", p, "RIGHT", 2, 0)
+    p.badge = badge
     p.level = p:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     p.level:SetDrawLayer("OVERLAY", 3)
     p.level:SetPoint("CENTER", badge, "CENTER", 0, -0.5)
@@ -104,7 +107,7 @@ local function AuraList(p)
         layout = { elementSpacing = DEBUFF_GAP, groupSpacing = 0, elementWidth = DEBUFF_SIZE, elementHeight = DEBUFF_SIZE },
         initializeFrame = StyleDebuff,
     })
-    c:SetPoint("TOPLEFT", p, "BOTTOMLEFT", 0, -3)
+    c:SetPoint("TOPLEFT", p, "BOTTOMLEFT", 0, p.barShown == false and -9 or -3)
     c:Hide()
     p.auras = c
     return c
@@ -186,6 +189,25 @@ local function Refresh(p)
     else
         p.name:SetTextColor(HS.GOLD[1], HS.GOLD[2], HS.GOLD[3])
     end
+    -- (the health line off: the name and level alone)
+    local showBar = IN.Settings().nameplateHideBar ~= true
+    p.bar:SetShown(showBar)
+    p.track:SetShown(showBar)
+    p.badge:SetShown(showBar)
+    if p.barShown ~= showBar then
+        p.barShown = showBar
+        -- (no line: the name sits where the line was, the debuffs under it)
+        p.name:ClearAllPoints()
+        if showBar then
+            p.name:SetPoint("BOTTOM", p, "TOP", 0, 3)
+        else
+            p.name:SetPoint("CENTER", p, "CENTER", 0, 0)
+        end
+        if p.auras then
+            p.auras:ClearAllPoints()
+            p.auras:SetPoint("TOPLEFT", p, "BOTTOMLEFT", 0, showBar and -3 or -9)
+        end
+    end
     local value, max = UnitHealth(unit), UnitHealthMax(unit)
     if not Try(p.bar.SetMinMaxValues, p.bar, 0, max) or not Try(p.bar.SetValue, p.bar, value) then
         p.bar:SetMinMaxValues(0, 1)
@@ -193,7 +215,12 @@ local function Refresh(p)
     end
     local r, g, b = TH.NameplateColor(unit)
     p.bar:SetStatusBarColor(r, g, b)
-    Level(p, unit)
+    if showBar then
+        Level(p, unit)
+    else
+        p.skull:Hide()
+        p.level:SetText("")
+    end
     -- (your target's at full size, the others softer: eased on a change)
     local target = Flag(IsTarget, unit)
     p.goalAlpha = target and 1 or OTHER_ALPHA
@@ -215,13 +242,25 @@ local function HideGame(game, on)
     if ok and type(unitFrame) == "table" then pcall(IF.Focus.Fade, unitFrame, on) end
 end
 
+local function IsCreature(unit)
+    local ok, kind = pcall(function()
+        local guid = UnitGUID(unit)
+        if Secret(guid) or type(guid) ~= "string" then return false end
+        return guid:find("^Creature") or guid:find("^Player") or guid:find("^Vehicle") or guid:find("^Pet")
+    end)
+    return ok and kind and true or false
+end
+
 local function Wanted(unit)
     local s = IN.Settings()
     if s.nameplates == false or UF.EditMode() then return false end
     if Flag(UnitNameplateShowsWidgetsOnly, unit) then return false end
-    if Flag(IsSoft, unit) and not Flag(IsTarget, unit) then return false end
+    -- (the soft-interact object that isn't a creature or player, the fishing
+    -- bobber, stays the game's; a soft-interact NPC gets our look)
+    if Flag(IsSoft, unit) and not Flag(IsTarget, unit) and not IsCreature(unit) then return false end
     return true
 end
+
 
 local function Release(unit)
     local a = active[unit]
@@ -249,7 +288,7 @@ local function Add(unit)
     p.alpha = nil
     HideGame(game, true)
     p:ClearAllPoints()
-    p:SetPoint("CENTER", game, "CENTER", 0, 0)
+    p:SetPoint("CENTER", game, "CENTER", 0, -PLATE_DROP)
     Refresh(p)
     Auras(p, unit)
 end
@@ -306,7 +345,42 @@ end)
 
 -- The setting changed: every plate in play drawn again (ours, or the game's)
 function N.Apply()
+    pcall(N.ApplyCVar)
     local units = {}
     for unit in pairs(active) do units[#units + 1] = unit end
     for _, unit in ipairs(units) do Safe(Add, unit) end
 end
+
+---------------------------------------------------------------------------
+-- Friendly NPC plates: the game draws none by itself (nameplateShowFriendlyNPCs
+-- 0), only their name as plain text, so ours has nothing to dress. The setting
+-- turns the CVar on (remembering yours, put back when it's off).
+---------------------------------------------------------------------------
+local CVAR = "nameplateShowFriendlyNPCs"
+
+function N.ApplyCVar()
+    if InCombatLockdown() then
+        N.cvarPending = true
+        return
+    end
+    N.cvarPending = nil
+    local s = IN.Settings()
+    local get = C_CVar and C_CVar.GetCVar or GetCVar
+    local set = C_CVar and C_CVar.SetCVar or SetCVar
+    local want = s.nameplates ~= false and s.nameplateFriendlyNPCs ~= false
+    if want then
+        if s.cvarWas == nil then s.cvarWas = get(CVAR) or "0" end
+        if get(CVAR) ~= "1" then set(CVAR, "1") end
+    elseif s.cvarWas ~= nil then
+        set(CVAR, s.cvarWas)
+        s.cvarWas = nil
+    end
+end
+
+local cvarEvents = CreateFrame("Frame")
+cvarEvents:RegisterEvent("PLAYER_ENTERING_WORLD")
+cvarEvents:RegisterEvent("PLAYER_REGEN_ENABLED")
+cvarEvents:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_REGEN_ENABLED" and not N.cvarPending then return end
+    pcall(N.ApplyCVar)
+end)

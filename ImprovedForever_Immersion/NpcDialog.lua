@@ -393,6 +393,8 @@ local function ItemButton(i)
     b.chosen:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
     b.count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
     b.count:SetPoint("BOTTOMRIGHT", 2, -2)
+    -- (the green arrow: better than what is worn)
+    b.upArrow = IF.Upgrades and IF.Upgrades.Arrow(b, "TOPRIGHT", b, "TOPRIGHT", 4, 4)
     b:SetScript("OnEnter", function(self)
         self.lit = true
         Lit(self)
@@ -1345,6 +1347,10 @@ local function Build(d)
         b.kind, b.index, b.choice = it.kind, it.index, it.choice
         b.icon:SetTexture(it.texture)
         b.count:SetText(it.count and it.count > 1 and it.count or "")
+        if b.upArrow then
+            local link = GetQuestItemLink and GetQuestItemLink(it.kind, it.index)
+            b.upArrow:SetShown(link and IF.Upgrades.IsUpgrade(link) or false)
+        end
         b.Run = it.choice and function()
             choice = it.index
             ND.Refresh()
@@ -1787,6 +1793,8 @@ events:SetScript("OnEvent", function(_, event)
 end)
 
 IF.Input.OnChange(function() dirty = true end)
+-- (an item's data arrives late: the upgrade arrows are asked again)
+if IF.Upgrades and IF.Upgrades.OnChange then IF.Upgrades.OnChange(function() dirty = true end) end
 
 -- The subtitle at its place: the default one plus the player's offset (the Immersion tab's
 -- sliders: px right, px up)
