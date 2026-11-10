@@ -111,7 +111,7 @@ IQT.sortedIDs = {}
 -- infos: the module's list ({ quest, index }), in the game's order;
 -- sorted in place as the settings say
 function IQT.SortWatchInfos(infos, module)
-	if not IQT.IsActive() or #infos < 2 then
+	if not IQT.IsActive() or #infos == 0 then
 		IQT.sortedIDs[module] = nil
 		return infos
 	end

@@ -1556,7 +1556,6 @@ local function RenderSide()
     sideTitle:SetText(Mouse() and "" or (Glyph("LS", 18) .. " Category"))
     BY.searchBox:SetShown(Mouse())
     local top = math.max(1, math.min(BY.main - math.floor(SIDE_ROWS / 2), #mains - SIDE_ROWS + 1))
-    local fr, fg, fb = FocusColor()
     for i, r in ipairs(sideRows) do
         local index = top + i - 1
         local cat = mains[index]
@@ -1567,7 +1566,6 @@ local function RenderSide()
             r.text:SetText(cat.name)
             r.text:SetTextColor(on and 1 or 0.8, on and 0.95 or 0.74, on and 0.8 or 0.6)
             r.focus:SetShown(on)
-            r.focus:SetVertexColor(fr, fg, fb)
         end
     end
 end
@@ -1585,7 +1583,6 @@ local function RenderResults()
     BY.top = math.max(1, math.min(BY.top, math.max(1, n - per + 1)))
     emptyText:SetShown(n == 0)
     emptyText:SetText(BY.searching and "Searching..." or "Nothing listed here")
-    local fr, fg, fb = FocusColor()
     for _, r in ipairs(listRows) do r:Hide() end
     for i, f in ipairs(listRows) do
         local index = BY.top + i - 1
@@ -1609,7 +1606,6 @@ local function RenderResults()
             -- (dimmed only under the filters: the item's screen gone into
             -- keeps its row bright)
             f.focus:SetShown(index == BY.index)
-            f.focus:SetVertexColor(fr, fg, fb)
             f.focus:SetAlpha(filterBox:IsShown() and 0.4 or 1)
             f:Show()
         end
@@ -1765,7 +1761,6 @@ local function RenderDetail()
                 -- (beside the list, not gone into: no pick shown; with the
                 -- mouse it's clicked, always shown)
                 r.focus:SetShown(on and (DetailActive() or Mouse()))
-                r.focus:SetVertexColor(fr, fg, fb)
             end
         end
     end
@@ -2111,7 +2106,10 @@ function BY.Press(name, fast)
         -- and the filters: the list's, the screen left)
         local toList = name == "LB" or name == "RB" or name == "LT" or name == "RT" or name == "LS"
         if name == "B" or toList then
-            if D.holdStart then D.holdStart = nil end
+            if D.holdStart then
+                D.holdStart = nil
+                DropQuote()
+            end
             BY.detailFocus = false
             if name == "B" then return BY.Render() end
         else
@@ -2275,7 +2273,7 @@ win:SetScript("OnUpdate", function()
     -- (its own focus glow while it has the pad, as the game's windows: not
     -- while the Wiki or the confirmation over it has it)
     local wiki = IF.Wiki and IF.Wiki.HasFocus and IF.Wiki.HasFocus()
-    IF.Focus.Glow(win, not (wiki or IF.AuctionConfirm.IsShown()))
+    IF.Focus.Glow(win, IF.Input.Pad() and not (wiki or IF.AuctionConfirm.IsShown()))
     WikiHold(now)
     -- (the Wiki with the pad: its sticks too)
     if IF.Wiki and IF.Wiki.HasFocus and IF.Wiki.HasFocus() then return end
@@ -2361,15 +2359,15 @@ end
 local pointer
 local function SyncNative()
     local ah = _G.AuctionHouseFrame
-    if ah then ah:SetAlpha(win:IsShown() and A.IsOpen() and 0 or 1) end
+    if ah then IF.Focus.Fade(ah, win:IsShown() and A.IsOpen()) end
     local nav = _G.SmartNavigation
     if win:IsShown() then
         if nav and nav.Pointer and not pointer then
             pointer = nav.Pointer
-            pointer:SetAlpha(0)
+            IF.Focus.Fade(pointer, true)
         end
     elseif pointer then
-        pointer:SetAlpha(1)
+        IF.Focus.Fade(pointer, false)
         pointer = nil
     end
 end

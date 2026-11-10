@@ -114,10 +114,15 @@ local function Secret(v)
 end
 
 -- The game's mirror timers' frames, faded while the breath is the only one
+local nativeTimers = {}
 local function Natives()
-    local list = { _G.MirrorTimerContainer }
-    for i = 1, 3 do list[#list + 1] = _G["MirrorTimer" .. i] end
-    return list
+    wipe(nativeTimers)
+    if _G.MirrorTimerContainer then nativeTimers[#nativeTimers + 1] = _G.MirrorTimerContainer end
+    for i = 1, 3 do
+        local f = _G["MirrorTimer" .. i]
+        if f then nativeTimers[#nativeTimers + 1] = f end
+    end
+    return nativeTimers
 end
 
 -- The breath timer's value and max, and how many timers run: nil when no

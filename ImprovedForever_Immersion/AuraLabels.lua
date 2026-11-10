@@ -111,11 +111,22 @@ local function Label(i)
     return f
 end
 
+local function Secret(v)
+    return type(issecretvalue) == "function" and issecretvalue(v)
+end
+
 local function Place(f, button)
     local region = button.Icon or button
     local l, b, w, h = region:GetRect()
     if not (l and b and w and h) then return false end
+    if Secret(l) or Secret(b) or Secret(w) or Secret(h) then
+        return f.placed == true
+    end
     local k = region:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    if Secret(k) then
+        return f.placed == true
+    end
+    f.placed = true
     f:ClearAllPoints()
     f:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", l * k, b * k)
     f:SetSize(w * k, h * k)

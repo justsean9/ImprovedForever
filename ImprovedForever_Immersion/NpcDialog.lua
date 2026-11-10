@@ -1025,10 +1025,10 @@ local function SpokenTranscript()
 end
 
 -- (probe: why the words stall; a line a state change, in IF.db.ndLog,
--- written on /reload)
+-- written on /reload when ND.debug is enabled)
 local logKey, logStarted
 local function LogLine(text)
-    if not IF.db then return end
+    if not (IF.db and ND.debug) then return end
     if not logStarted then
         logStarted = true
         IF.db.ndLog = { date("%H:%M:%S") }
@@ -1037,7 +1037,7 @@ local function LogLine(text)
     if #log < 400 then log[#log + 1] = format("%.2f %s", GetTime() % 1000, text) end
 end
 local function Log(mirror, S, clip, playing)
-    if not IF.db then return end
+    if not (IF.db and ND.debug) then return end
     local T = SpokenTranscript()
     local key = table.concat({ tostring(mirror), tostring(S ~= nil), tostring(S and S.wanted),
         tostring(S and S.clip == clip), tostring(playing), tostring(T and T.hasStarted), tostring(T and T.held),

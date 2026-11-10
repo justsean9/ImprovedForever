@@ -6,7 +6,7 @@
 | Works with Xbox, PlayStation (DualSense), Switch Pro controllers | README.md |
 | Built for WoW Forever (client 1.60.x) | CLAUDE.md, README.md |
 | 14 addons: core + 13 modules | README.md, TOC files |
-| Current versions: Core 0.16.0, Auction 0.9.0, Immersion 0.9.1, Wheel 0.12.1, Fishing 0.2.2, Junk 0.8.1, Wiki 0.9.0, QuestTracker 0.6.5, Map 0.7.2, Minimap 0.7.1, Vibration 0.6.3, Chat 0.6.0, Journal 0.1.0, Camp 0.1.2 | `*/*.toc`, CHANGELOG.md |
+| Current versions: Core 0.12.0, Auction 0.8.0, Immersion 0.4.0, Wheel 0.10.0, Fishing 0.2.1, Junk 0.7.3, Wiki 0.8.1, QuestTracker 0.6.4, Map 0.7.1, Minimap 0.7.0, Vibration 0.6.2, Chat 0.6.0, Journal 0.1.0, Camp 0.1.0 | `*/*.toc`, CHANGELOG.md |
 | Every module but Controller and Wheel also works with mouse and keyboard | README.md |
 | Wiki data from QuestieDB (Questie team) | README.md |
 | Parts adapted from Easy Controller - Forever by moust4ki (MIT) | README.md |

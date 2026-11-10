@@ -376,6 +376,10 @@ local PAGE = { x = 12, unit = 17, foot = 30, top = 40, plate = 262, row = 318, c
 -- plates.
 local SHARE = { rich = 5, shared = { [2] = 7, [3] = 3 } }
 
+local WORDS_W = RIGHT_W - 2 * PAGE.x
+local BOTTOM = RIGHT_H - PAGE.foot
+local FOUR, LOST = { "tl", "tr", "bl", "br" }, { "tl", "tr", "bl" }
+
 -- Two plates on a page of ours, in turn (and Social Diary's own for a
 -- full plate and a print, FL / LF), so the pages zigzag: the first plate
 -- high on one side with its caption and notes down the other, the second
@@ -391,9 +395,6 @@ local TWO = {
       { x = 8, y = 252, w = 272, h = 240, t = -1.6, pad = 8, pc = 24, corners = LOST, lift = "br",
         cap = { x = 294, y = 268, w = 164, limit = BOTTOM } } },
 }
-local WORDS_W = RIGHT_W - 2 * PAGE.x
-local BOTTOM = RIGHT_H - PAGE.foot
-local FOUR, LOST = { "tl", "tr", "bl", "br" }, { "tl", "tr", "bl" }
 local Plate = ns.UI.JourneyPlate
 
 -- The plate's slot: its caption over it and its cards in a row under it

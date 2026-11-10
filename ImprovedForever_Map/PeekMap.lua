@@ -159,13 +159,22 @@ end
 -- (parts of the window it shows later, a footer, faded too while a peek;
 -- and the game's cursor, there when the peek opened the map as a window:
 -- the first one, or in combat, Focus.lua)
-local refade = CreateFrame("Frame")
-refade:SetScript("OnUpdate", function()
-    if not (peeking and saved and WorldMapFrame) then return end
-    FadeSpoken(true)
-    for _, child in ipairs({ WorldMapFrame:GetChildren() }) do
-        if child ~= WorldMapFrame.ScrollContainer and saved.alphas[child] == nil then Fade(child) end
+local function FadeChildren(scroll, ...)
+    for i = 1, select("#", ...) do
+        local child = select(i, ...)
+        if child ~= scroll and saved.alphas[child] == nil then Fade(child) end
     end
+end
+
+local refade = CreateFrame("Frame")
+local refadeWait = 0
+refade:SetScript("OnUpdate", function(_, elapsed)
+    if not (peeking and saved and WorldMapFrame) then return end
+    refadeWait = refadeWait + (elapsed or 0)
+    if refadeWait < 0.1 then return end
+    refadeWait = 0
+    FadeSpoken(true)
+    FadeChildren(WorldMapFrame.ScrollContainer, WorldMapFrame:GetChildren())
     local pointer = _G.SmartNavigation and SmartNavigation.Pointer
     if pointer and pointer:GetAlpha() > 0 then IF.Focus.DimNative(place, true) end
 end)

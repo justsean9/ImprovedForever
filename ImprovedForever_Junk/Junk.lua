@@ -334,10 +334,18 @@ function J.SetMarkKey(key)
     J.Settings().markKey = key ~= DEFAULT_MARK_KEY and key or nil
 end
 
+local lastSpec, lastHeld, lastPressed
 local function Parts(spec)
-    local held, pressed = spec:match("^(.-)%+(.+)$")
-    if held then return held, pressed end
-    return nil, spec
+    if spec ~= lastSpec then
+        lastSpec = spec
+        local held, pressed = spec:match("^(.-)%+(.+)$")
+        if held then
+            lastHeld, lastPressed = held, pressed
+        else
+            lastHeld, lastPressed = nil, spec
+        end
+    end
+    return lastHeld, lastPressed
 end
 
 -- A shoulder or trigger held: a press of one button alone is another's

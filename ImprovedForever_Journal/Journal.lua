@@ -704,14 +704,10 @@ local function Died()
     if not On("fights") then return end
     local s = J.Day().stats
     s.deaths = s.deaths + 1
-    local map = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
-    local pos = map and C_Map.GetPlayerMapPosition and C_Map.GetPlayerMapPosition(map, "player")
-    local x, y
-    if pos then x, y = pos:GetXY() end
     local by = lastFoe and GetTime() - lastFoe.at < 120 and lastFoe.name or nil
     local sub = GetSubZoneText and GetSubZoneText() or nil
     local byClass = by and targets[by] and targets[by].class
-    Add("death", { zone = Zone(), sub = sub ~= "" and sub or nil, map = map, x = x, y = y, by = by,
+    Add("death", { zone = Zone(), sub = sub ~= "" and sub or nil, by = by,
         named = byClass and byClass ~= "normal" and byClass ~= "trivial" and byClass ~= "minus" or nil })
 end
 
@@ -1433,7 +1429,8 @@ IF.OnLogin(function()
     -- (bought from a merchant: what)
     if type(BuyMerchantItem) == "function" then
         hooksecurefunc("BuyMerchantItem", function(index)
-            local link = GetMerchantItemLink and GetMerchantItemLink(index)
+            local getLink = (C_MerchantFrame and C_MerchantFrame.GetItemLink) or GetMerchantItemLink
+            local link = getLink and getLink(index)
             local name = link and not Secret(link) and link:match("%[(.-)%]")
             Hint({ src = "buy", what = name })
         end)

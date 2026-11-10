@@ -1047,6 +1047,7 @@ function K.Picker(parent, width, onRender, opts)
         self.moreDown:ClearAllPoints()
         self.moreUp:SetPoint("BOTTOM", self, "TOPLEFT", 12 + (width - 24) / 2, top + 1)
         self.moreDown:SetPoint("TOP", self, "TOPLEFT", 12 + (width - 24) / 2, y - 1)
+        self.moreUp:SetShown(self.offset > 0)
         self.moreDown:SetShown(self.offset + max < #self.entries)
         -- Where its rows start (under its list's name and tabs) and end
         self.rowsTop, self.rowsBottom = top, y

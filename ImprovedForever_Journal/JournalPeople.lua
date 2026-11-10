@@ -482,7 +482,7 @@ local HANDLERS = {
     TRADE_MONEY_CHANGED = TradeRead,
     TRADE_ACCEPT_UPDATE = TradeRead,
     UI_INFO_MESSAGE = function(_, msg)
-        if tradeDone and msg == tradeDone then TradeDone() end
+        if tradeDone and not I.Secret(msg) and msg == tradeDone then TradeDone() end
     end,
     TRADE_CLOSED = function()
         -- (closed: done, else let go a moment later, the done line may come after)

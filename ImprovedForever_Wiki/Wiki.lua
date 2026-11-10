@@ -879,7 +879,9 @@ local function ButtonItem(f)
     if name:find("^MerchantItem%d+ItemButton$") and f.GetID then
         local merchant = _G.MerchantFrame
         local buyback = merchant and merchant.selectedTab == 2
-        return buyback and GetBuybackItemLink(f:GetID()) or (not buyback and GetMerchantItemLink(f:GetID()))
+        if buyback then return GetBuybackItemLink(f:GetID()) end
+        local getLink = (C_MerchantFrame and C_MerchantFrame.GetItemLink) or GetMerchantItemLink
+        return getLink and getLink(f:GetID())
     end
     if f.objectType == "item" and f.type and f.GetID then
         local log = _G.QuestInfoFrame and _G.QuestInfoFrame.questLog

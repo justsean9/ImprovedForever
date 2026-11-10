@@ -618,11 +618,18 @@ end
 -- it's running and on the global cooldown (never secret)
 local function ActionCooldown(storage)
     if C_ActionBar and C_ActionBar.GetActionCooldown then
-        local ok, info = pcall(C_ActionBar.GetActionCooldown, storage)
-        if ok and type(info) == "table" then return info.startTime, info.duration, info.isActive, info.isOnGCD end
-    elseif GetActionCooldown then
-        local ok, start, duration = pcall(GetActionCooldown, storage)
-        if ok then return start, duration end
+        local ok, a, b, c, d = pcall(C_ActionBar.GetActionCooldown, storage)
+        if ok then
+            if type(a) == "table" then
+                return a.startTime, a.duration, a.isActive, a.isOnGCD
+            elseif a ~= nil then
+                return a, b, c, d
+            end
+        end
+    end
+    if GetActionCooldown then
+        local ok, start, duration, enable = pcall(GetActionCooldown, storage)
+        if ok then return start, duration, enable ~= 0 end
     end
 end
 
@@ -694,12 +701,16 @@ local function TooltipLength(key, storage)
     end
 end
 
-local function BaseLength(storage)
-    local id = SpellOf(storage)
-    if not (id and GetSpellBaseCooldown) then return nil end
-    local ok, ms = pcall(GetSpellBaseCooldown, id)
+local function SpellBaseLength(spellID)
+    if not (spellID and GetSpellBaseCooldown) then return nil end
+    local ok, ms = pcall(GetSpellBaseCooldown, spellID)
     if not ok or Secret(ms) or type(ms) ~= "number" or ms <= GCD_MAX * 1000 then return nil end
     return ms / 1000
+end
+
+local function BaseLength(storage)
+    local id = SpellOf(storage)
+    return SpellBaseLength(id)
 end
 
 -- (a lockout no longer than this (the wand's or a ranged weapon's swing,
@@ -790,20 +801,125 @@ local function SlotCooldown(key, storage, now)
     return activeSince[key], length
 end
 
+-- Shared cooldown groups: when any spell in a group is cast, other
+-- spells in that specific group also start their cooldown at the same moment.
+-- Keep distinct pairs/groups separate so unrelated abilities do not trigger each other.
+local SHARED_GROUPS = {
+    -- Hunter: Multi-Shot <-> Aimed Shot
+    { 2643, 19434, "Multi-Shot", "Aimed Shot" },
+
+    -- Hunter: Arcane Shot <-> Aspect of the Hawk
+    { 3044, 13165, "Arcane Shot", "Aspect of the Hawk" },
+
+    -- Hunter: Traps
+    { 1499, 13809, 13795, 13813, "Freezing Trap", "Frost Trap", "Immolation Trap", "Explosive Trap" },
+
+    -- Shaman: Shocks
+    { 8042, 8024, 8056, "Earth Shock", "Flame Shock", "Frost Shock" },
+
+    -- Mage: Wards
+    { 543, 6143, "Fire Ward", "Frost Ward" },
+}
+
+local sharedMap = {}
+local function InitSharedGroups()
+    sharedMap = {}
+    for _, group in ipairs(SHARED_GROUPS) do
+        local names = {}
+        for _, idOrName in ipairs(group) do
+            if type(idOrName) == "number" then
+                local n = SpellName(idOrName)
+                if n then names[n] = true end
+                names[tostring(idOrName)] = true
+            elseif type(idOrName) == "string" then
+                names[idOrName] = true
+            end
+        end
+        for k in pairs(names) do
+            sharedMap[k] = names
+        end
+    end
+end
+InitSharedGroups()
+
+-- All slots on any gamepad page or action bar (cached until slots/macros change)
+local cachedActionSlots
+local function AllActionSlots()
+    if cachedActionSlots then return cachedActionSlots end
+    local util = _G.GamepadActionBarBindingUtil
+    local main = _G.GamepadMainActionBarFrame
+    local unit = main and main.PageUnit
+    local list, seen = {}, {}
+    local function addSlot(storage)
+        if seen[storage] then return end
+        seen[storage] = true
+        local got, kind, id = pcall(GetActionInfo, storage)
+        if got and not Secret(kind) and not Secret(id) and kind and id then
+            local key = kind .. ":" .. tostring(id)
+            local spellID = (kind == "spell" and type(id) == "number" and id) or SpellOf(storage)
+            list[#list + 1] = {
+                key = key,
+                storage = storage,
+                spellID = spellID,
+                spellName = spellID and SpellName(spellID) or nil,
+            }
+        end
+    end
+    if util and unit then
+        for page = 1, 6 do
+            for slot = 1, 32 do
+                local ok, storage = pcall(util.GetGamepadStorageSlotIndexFromPageAndPageUnitSlotID, page, slot)
+                if ok and type(storage) == "number" then
+                    addSlot(storage)
+                end
+            end
+        end
+    end
+    for storage = 1, 120 do
+        addSlot(storage)
+    end
+    cachedActionSlots = list
+    return list
+end
+
 -- (your casts, readable in a fight: each slot of that spell (or another
 -- rank of it) starts its timer, its length learnt; a trinket's use too)
 local casts = CreateFrame("Frame")
 casts:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-casts:SetScript("OnEvent", function(_, _, _, _, spellID)
+for _, ev in ipairs({ "PLAYER_LOGIN", "ACTIONBAR_SLOT_CHANGED", "SPELLS_CHANGED", "UPDATE_MACROS" }) do
+    casts:RegisterEvent(ev)
+end
+casts:SetScript("OnEvent", function(_, event, _, _, spellID)
+    if event ~= "UNIT_SPELLCAST_SUCCEEDED" then
+        cachedActionSlots = nil
+        if event == "PLAYER_LOGIN" then InitSharedGroups() end
+        return
+    end
     if Secret(spellID) or type(spellID) ~= "number" then return end
     local now = GetTime()
     local name = SpellName(spellID)
-    for _, slot in ipairs(PadSlots()) do
-        local id = SpellOf(slot.storage)
-        if id and (id == spellID or (name and SpellName(id) == name)) then
-            local length = cdLengths[slot.key] or BaseLength(slot.storage)
+    local spellKey = "spell:" .. tostring(spellID)
+    local len = cdLengths[spellKey] or SpellBaseLength(spellID)
+    if len and len > GCD_MAX then
+        known[spellKey] = { now, len }
+        if name then known[name] = { now, len } end
+    end
+    -- Check if this cast belongs to a shared cooldown group
+    local castName = name or (spellID and SpellName(spellID))
+    local shared = sharedMap[tostring(spellID)] or (castName and sharedMap[castName])
+
+    local allSlots = AllActionSlots()
+    for _, slot in ipairs(allSlots) do
+        local id = slot.spellID
+        local sName = slot.spellName
+        local isCast = id and (id == spellID or (name and sName == name))
+        local isShared = not isCast and shared and id and (shared[tostring(id)] or (sName and shared[sName]))
+        if isCast or isShared then
+            local length = cdLengths[slot.key] or BaseLength(slot.storage) or len
             if length and length > GCD_MAX then
                 known[slot.key], activeSince[slot.key] = { now, length }, nil
+                if sName then known[sName] = { now, length } end
+                if id then known["spell:" .. tostring(id)] = { now, length } end
             end
         end
     end
@@ -813,10 +929,55 @@ casts:SetScript("OnEvent", function(_, _, _, _, spellID)
         local _, useID = item and get and get(item)
         if useID and not Secret(useID) and useID == spellID then
             local key = "inv:" .. inv
-            known[key] = { now, cdLengths[key] }
+            local trLen = cdLengths[key] or len
+            if trLen and trLen > 0 then
+                known[key] = { now, trLen }
+            end
         end
     end
 end)
+
+-- Export for GamepadBar and other modules to query active cooldowns
+function BT.GetActionCooldown(storage)
+    if not storage then return nil end
+    local ok, kind, id = pcall(GetActionInfo, storage)
+    if not (ok and kind and id and not Secret(kind) and not Secret(id)) then
+        return nil
+    end
+    local key = kind .. ":" .. tostring(id)
+    local now = GetTime()
+    if not cdLengths[key] then TooltipLength(key, storage) end
+    local start, duration = SlotCooldown(key, storage, now)
+    if start and duration then return start, duration end
+    local spellID = SpellOf(storage)
+    if spellID then
+        local sStart, sDur = BT.GetSpellCooldown(spellID)
+        if sStart and sDur then return sStart, sDur end
+    end
+end
+
+function BT.GetSpellCooldown(spellID)
+    if not spellID or Secret(spellID) or type(spellID) ~= "number" then return nil end
+    local key = "spell:" .. tostring(spellID)
+    local now = GetTime()
+    local was = known[key]
+    if was and was[2] and was[1] + was[2] > now then
+        return was[1], was[2]
+    end
+    local name = SpellName(spellID)
+    if name and known[name] and known[name][2] and known[name][1] + known[name][2] > now then
+        return known[name][1], known[name][2]
+    end
+    if name and sharedMap[name] then
+        for siblingName in pairs(sharedMap[name]) do
+            local sWas = known[siblingName]
+            if sWas and sWas[2] and sWas[1] + sWas[2] > now then
+                local length = cdLengths[key] or SpellBaseLength(spellID) or sWas[2]
+                return sWas[1], length
+            end
+        end
+    end
+end
 
 local cooldowns = Timeline("ImprovedForeverCooldownTimeline", {
     Lane = function()

@@ -210,7 +210,6 @@ function VT.Render()
     empty:SetShown(#list == 0)
     empty:SetText(#TK.Tasks() == 0 and "No tasks yet" or "Nothing this vendor sells for it")
     local top = math.max(1, VT.sel - #rows + 1)
-    local fr, fg, fb = BY.FocusColor()
     for i, r in ipairs(rows) do
         local index = top + i - 1
         local w = list[index]
@@ -224,14 +223,14 @@ function VT.Render()
                 price = A.Money(w.unit * w.buy),
             })
             r.focus:SetShown(index == VT.sel)
-            r.focus:SetVertexColor(fr, fg, fb, VT.column == "items" and 1 or 0.35)
+            r.focus:SetAlpha(VT.column == "items" and 1 or 0.35)
         end
     end
     RenderHold()
     -- (its own focus glow and legend while it has the pad, as the game's
     -- windows; L2 or R2, by the side it's on, to the merchant's window)
     local ours = VT.switch.focus == "ours"
-    IF.Focus.Glow(panel, ours)
+    IF.Focus.Glow(panel, ours and not mouse)
     legend:SetShown(ours and not mouse)
     mouseBar:SetShown(mouse and #list > 1)
     -- (the hold box clear of it)
@@ -456,25 +455,19 @@ end
 
 local function PlacePrompt(holder, box)
     local width = box:GetWidth()
-    if holder.box ~= box or not holder.setWidth or math.abs(width - holder.setWidth) > 0.5 then
+    if holder.box ~= box or not holder.baseWidth or math.abs(width - holder.baseWidth) > 0.5 then
         holder.box, holder.baseWidth = box, width
         holder.prompt:ClearAllPoints()
         holder.prompt:SetPoint("TOPLEFT", box, "TOPLEFT", width - LEGEND_PAD + PROMPT_GAP, -LEGEND_PAD)
     end
     holder:SetFrameLevel(box:GetFrameLevel() + 2)
-    holder.setWidth = holder.baseWidth + PROMPT_GAP + holder.prompt:GetWidth()
-    box:SetWidth(holder.setWidth)
 end
 
 local function HidePrompt()
     local holder = prompt
     if not holder or not holder:IsShown() then return end
     holder:Hide()
-    local box = holder.box
-    if box and holder.setWidth and math.abs(box:GetWidth() - holder.setWidth) <= 0.5 then
-        box:SetWidth(holder.baseWidth)
-    end
-    holder.box, holder.setWidth = nil, nil
+    holder.box, holder.baseWidth = nil, nil
 end
 
 -- With the mouse: a Tasks button of ours under the merchant's window (our

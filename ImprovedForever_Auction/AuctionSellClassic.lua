@@ -679,7 +679,6 @@ local function RenderList()
     end
     top = math.max(1, math.min(top, math.max(1, #lines - shown + 1)))
     f.empty:SetShown(#lines == 0)
-    local fr, fg, fb = BY.FocusColor()
     for i, r in ipairs(rows) do
         local index = top + i - 1
         local line = lines[index]
@@ -720,7 +719,6 @@ local function RenderList()
                 end
                 local on = index == sel
                 r.focus:SetShown(on)
-                r.focus:SetVertexColor(fr, fg, fb)
             end
         end
     end

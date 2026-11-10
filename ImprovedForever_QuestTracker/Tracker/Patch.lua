@@ -23,15 +23,7 @@ end
 -- their alpha (SetAlpha): a property of the game's frames set from addon
 -- code taints its gamepad focus (closing it gets forbidden): IF.Focus.Fade,
 -- an animation of ours, draws them at 0, their own alpha untouched.
-local function NativeParts()
-	local native = ObjectiveTrackerFrame
-	local parts = { native.Header, native.NineSlice }
-	for _, module in ipairs(native.modules or {}) do
-		parts[#parts + 1] = module
-	end
-	return parts
-end
-
+local lastEdit
 local function Watch()
 	local native = ObjectiveTrackerFrame
 	if not native then return end
@@ -44,9 +36,15 @@ local function Watch()
 	if ours:GetFrameLevel() < native:GetFrameLevel() + 30 then
 		ours:SetFrameLevel(native:GetFrameLevel() + 30)
 	end
-	for _, part in ipairs(NativeParts()) do
-		IF.Focus.Fade(part, not edit)
+	IF.Focus.Fade(native.Header, not edit)
+	IF.Focus.Fade(native.NineSlice, not edit)
+	for _, module in ipairs(native.modules or {}) do
+		IF.Focus.Fade(module, not edit)
 	end
+	if lastEdit == true and not edit and IQT.Items then
+		IQT.Items.Sync()
+	end
+	lastEdit = edit
 end
 
 if ObjectiveTrackerFrame then
@@ -93,6 +91,9 @@ local function MirrorOpacity()
 end
 
 if ObjectiveTrackerManager then
+	-- (ObjectiveTrackerLineFont / ObjectiveTrackerHeaderFont are shared with
+	-- the game's tracker: let only ObjectiveTrackerManager mutate them)
+	IFObjectiveTrackerManager.SetTextSize = function(self) self:UpdateAll() end
 	hooksecurefunc(ObjectiveTrackerManager, "SetOpacity", MirrorOpacity)
 	-- (the fonts already changed: lay ours out again)
 	hooksecurefunc(ObjectiveTrackerManager, "SetTextSize", function() IFObjectiveTrackerManager:UpdateAll() end)

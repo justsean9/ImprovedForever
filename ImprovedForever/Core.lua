@@ -135,8 +135,18 @@ function IF.OnLogin(fn)
 end
 
 local loader = CreateFrame("Frame")
+loader:RegisterEvent("ADDON_LOADED")
 loader:RegisterEvent("PLAYER_LOGIN")
-loader:SetScript("OnEvent", function()
+loader:SetScript("OnEvent", function(self, event, arg1)
+    if event == "ADDON_LOADED" then
+        if arg1 == "ImprovedForever" then
+            ImprovedForeverDB = ImprovedForeverDB or {}
+            IF.db = ImprovedForeverDB
+            ImprovedForeverCharDB = ImprovedForeverCharDB or {}
+            IF.charDB = ImprovedForeverCharDB
+        end
+        return
+    end
     ImprovedForeverDB = ImprovedForeverDB or {}
     IF.db = ImprovedForeverDB
     ImprovedForeverCharDB = ImprovedForeverCharDB or {}

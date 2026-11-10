@@ -199,16 +199,20 @@ end
 -- style table itself is local there, appliedStyle only its id)
 local BAR_EXPANDED_WIDTH = 266
 local ANCHORS = { "TopCenteredAnchor", "BottomCenteredAnchor", "LeftCenteredAnchor", "RightCenteredAnchor" }
+local function FirstShownChild(...)
+    for i = 1, select("#", ...) do
+        local child = select(i, ...)
+        if child and child:IsShown() then return child end
+    end
+end
+
 local function BarsRight(main)
     local unit = main.PageUnit
     if not unit then return nil end
     local right, y, n
     for _, key in ipairs(ANCHORS) do
         local anchor = unit[key]
-        local shown
-        for _, child in ipairs(anchor and { anchor:GetChildren() } or {}) do
-            if child:IsShown() then shown = child break end
-        end
+        local shown = anchor and FirstShownChild(anchor:GetChildren())
         local cx, cy
         if shown then cx, cy = anchor:GetCenter() end
         if cx and cy then
@@ -226,37 +230,36 @@ end
 
 -- Beside the game's bar (right of its rightmost bar), else bottom right of
 -- the middle. Set again only when it moved (it's checked every update).
-local placed
+local placed = {}
 local function Place()
     local main = _G.GamepadMainActionBarFrame
     local layout = Layout()
-    local where
+    local w1, w2, w3, w4, w5
     local _, anchor, ax, ay = Diamonds()
     if anchor and not slot.editing then
-        where = { "CENTER", anchor, ax, ay, "CENTER" }
+        w1, w2, w3, w4, w5 = "CENTER", anchor, ax, ay, "CENTER"
     elseif layout.x then
-        where = { "CENTER", "BOTTOMLEFT", layout.x, layout.y }
+        w1, w2, w3, w4 = "CENTER", "BOTTOMLEFT", layout.x, layout.y
     elseif main and main:IsShown() then
         local right, y = BarsRight(main)
         if right then
             local s = slot:GetEffectiveScale()
-            where = { "LEFT", "BOTTOMLEFT", math.floor(right / s + 6.5), math.floor(y / s + 0.5) }
+            w1, w2, w3, w4 = "LEFT", "BOTTOMLEFT", math.floor(right / s + 6.5), math.floor(y / s + 0.5)
         else
-            where = { "LEFT", main, 6, -20, "RIGHT" }
+            w1, w2, w3, w4, w5 = "LEFT", main, 6, -20, "RIGHT"
         end
     else
-        where = { "BOTTOM", "BOTTOM", 360, 120 }
+        w1, w2, w3, w4 = "BOTTOM", "BOTTOM", 360, 120
     end
-    if placed and placed[1] == where[1] and placed[2] == where[2]
-        and placed[3] == where[3] and placed[4] == where[4] then
+    if placed[1] == w1 and placed[2] == w2 and placed[3] == w3 and placed[4] == w4 and placed[5] == w5 then
         return
     end
-    placed = where
+    placed[1], placed[2], placed[3], placed[4], placed[5] = w1, w2, w3, w4, w5
     slot:ClearAllPoints()
-    if type(where[2]) == "table" then
-        slot:SetPoint(where[1], where[2], where[5], where[3], where[4])
+    if type(w2) == "table" then
+        slot:SetPoint(w1, w2, w5, w3, w4)
     else
-        slot:SetPoint(where[1], UIParent, where[2], where[3], where[4])
+        slot:SetPoint(w1, UIParent, w2, w3, w4)
     end
 end
 
@@ -492,6 +495,7 @@ pad:Hide()
 local stick = { x = 0, y = 0 }
 local repeatKey, repeatAt
 
+local padDisablePending = false
 local function Stop(save)
     if not slot.editing then return end
     slot.editing = nil
@@ -500,10 +504,15 @@ local function Stop(save)
     end
     before = nil
     pad:Hide()
-    if pad.EnableGamePadButton and not IF.InCombat() then
-        pad:EnableGamePadButton(false)
-        pad:EnableGamePadStick(false)
-        pad:EnableKeyboard(false)
+    if pad.EnableGamePadButton then
+        if not IF.InCombat() then
+            pad:EnableGamePadButton(false)
+            pad:EnableGamePadStick(false)
+            pad:EnableKeyboard(false)
+            padDisablePending = false
+        else
+            padDisablePending = true
+        end
     end
     help:Hide()
     sel:Hide()
@@ -513,6 +522,19 @@ local function Stop(save)
     Resize(true)
     Refresh(true)
 end
+
+pad:RegisterEvent("PLAYER_REGEN_DISABLED")
+pad:RegisterEvent("PLAYER_REGEN_ENABLED")
+pad:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_REGEN_DISABLED" and slot.editing then
+        Stop(false)
+    elseif event == "PLAYER_REGEN_ENABLED" and padDisablePending and pad.EnableGamePadButton then
+        pad:EnableGamePadButton(false)
+        pad:EnableGamePadStick(false)
+        pad:EnableKeyboard(false)
+        padDisablePending = false
+    end
+end)
 
 local PRESS = {
     PADDUP = function() Move(0, MOVE_STEP) end, PADDDOWN = function() Move(0, -MOVE_STEP) end,
@@ -567,7 +589,7 @@ local downAt
 slot:SetScript("OnMouseDown", function(self, button)
     if not self.editing or button ~= "LeftButton" then return end
     Pin()
-    placed = nil   -- (dragging moves it: set again after)
+    wipe(placed)   -- (dragging moves it: set again after)
     downAt = { self:GetCenter() }
     self:StartMoving()
 end)

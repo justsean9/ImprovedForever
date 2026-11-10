@@ -67,6 +67,7 @@ local function Detach(visual)
 	b:Hide()
 	b:ClearAllPoints()
 	b:SetAttribute("item", nil)
+	visual:EnableMouse(true)
 	pool[#pool + 1] = b
 end
 

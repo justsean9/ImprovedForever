@@ -459,11 +459,6 @@ function DS.Render()
             r.focus:SetShown(selected)
             r.focusGlow:SetShown(selected)
             if selected then r.cursor:Point(r) else r.cursor:Hide() end
-            if selected then
-                local fr, fg, fb = FocusColor()
-                r.focus:SetVertexColor(fr, fg, fb)
-                r.focusGlow:SetVertexColor(fr, fg, fb, 0.35)
-            end
             r.stroke:SetAlpha(selected and 0 or 1)
         end
     end
@@ -864,10 +859,18 @@ function DS.OpenKey()
     return IF.db and IF.db.bagCleanKey or DEFAULT_KEY
 end
 
+local lastSpec, lastHeld, lastPressed
 local function Parts(spec)
-    local held, pressed = spec:match("^(.-)%+(.+)$")
-    if held then return held, pressed end
-    return nil, spec
+    if spec ~= lastSpec then
+        lastSpec = spec
+        local held, pressed = spec:match("^(.-)%+(.+)$")
+        if held then
+            lastHeld, lastPressed = held, pressed
+        else
+            lastHeld, lastPressed = nil, spec
+        end
+    end
+    return lastHeld, lastPressed
 end
 
 -- Its name: "R2 + R3"; glyphs too with size
@@ -919,9 +922,14 @@ end
 local watcher = CreateFrame("Frame")
 local wasDown = false
 local tipsBefore      -- the tooltip setting before the opening press
-watcher:SetScript("OnUpdate", function()
+local suppressWait = 0
+watcher:SetScript("OnUpdate", function(_, elapsed)
     if not IF.db then return end
-    Suppress()
+    suppressWait = suppressWait + (elapsed or 0)
+    if suppressWait >= 0.1 then
+        suppressWait = 0
+        Suppress()
+    end
     if not DS.Enabled() or panel:IsShown() or IF.InCombat() or not IsKeyDown then
         wasDown = false
         return
@@ -930,6 +938,7 @@ watcher:SetScript("OnUpdate", function()
     local down = IsKeyDown(pressed) and (not held or IsKeyDown(held))
     -- The moment the combination is made
     if down and not wasDown and AnyBagOpen() then
+        Suppress()
         -- An R3 in it has also reached the bag window, which turned its
         -- tooltips over: back as they were
         if pressed == "PADRSTICK" and tipsBefore ~= nil and TipsOff() ~= tipsBefore then
@@ -1034,6 +1043,9 @@ local function PlaceLootPrompt(holder, box)
         holder.prompt:ClearAllPoints()
         holder.prompt:SetPoint("TOPLEFT", box, "TOPRIGHT", PROMPT_GAP - LEGEND_PAD, -LEGEND_PAD)
     end
+    if box and box.GetFrameLevel and holder.SetFrameLevel then
+        holder:SetFrameLevel(box:GetFrameLevel() + 2)
+    end
 end
 
 local function HideLootPrompt()
@@ -1043,7 +1055,7 @@ local function HideLootPrompt()
     holder.box = nil
 end
 
-local lootFull, freeAtError = false, 0
+local lootFull, freeAtError, cachedFreeSlots = false, 0, 0
 local triangleWasDown = false
 
 -- The loot slot last tried, and the one that didn't fit (the bags full)
@@ -1121,7 +1133,7 @@ local lootWatch = CreateFrame("Frame")
 lootWatch:Hide()
 lootWatch:SetScript("OnUpdate", function()
     local room = DS.Enabled() and not panel:IsShown() and not IF.InCombat()
-        and (lootFull or FreeSlots() == 0)
+        and (lootFull or cachedFreeSlots == 0)
     local mouse = room and not IF.Input.Pad() and LootButton()
     if mouse then mouse:Show() elseif lootButton then lootButton:Hide() end
     local box = room and IF.Input.Pad() and LootLegendBox()
@@ -1145,6 +1157,7 @@ lootEvents:RegisterEvent("UI_ERROR_MESSAGE")
 lootEvents:RegisterEvent("BAG_UPDATE_DELAYED")
 lootEvents:SetScript("OnEvent", function(_, event, ...)
     if event == "LOOT_OPENED" then
+        cachedFreeSlots = FreeSlots()
         lootFull, lastLootSlot, failedSlot, lootAfter = false, nil, nil, nil
         -- (a press still held from opening the loot isn't a new one)
         triangleWasDown = IsKeyDown and IsKeyDown(LOOT_KEY) or false
@@ -1162,11 +1175,13 @@ lootEvents:SetScript("OnEvent", function(_, event, ...)
         -- (errorType, message; older clients: message only)
         local first, message = ...
         if (message or first) == ERR_INV_FULL and lootWatch:IsShown() then
-            lootFull, freeAtError = true, FreeSlots()
+            cachedFreeSlots = FreeSlots()
+            lootFull, freeAtError = true, cachedFreeSlots
             failedSlot = lastLootSlot
         end
     else
-        if lootFull and FreeSlots() > freeAtError then
+        cachedFreeSlots = FreeSlots()
+        if lootFull and cachedFreeSlots > freeAtError then
             -- Room made since: no longer full
             lootFull = false
         end

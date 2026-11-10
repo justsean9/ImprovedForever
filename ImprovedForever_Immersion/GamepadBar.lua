@@ -176,6 +176,7 @@ local PROC_FILL, PROC_ALPHA = { 1, 0.95, 0.6 }, 0.3
 -- (a cooldown's beat, its end: the diamond flashing in the cooldown's
 -- colour, at most these)
 local FLASH_FILL, BEAT_FLASH, READY_FLASH = { 1, 1, 1 }, 0.4, 0.45
+local ATTACK_FILL, ATTACK_FLASH_ALPHA = { 1, 0.15, 0.15 }, 0.65
 -- (a cooldown this short is the global one: not shown)
 local GCD_MAX = 1.6
 -- (the cast ring: on the border, RING_AT of the tile's half width out; its
@@ -265,7 +266,8 @@ local function Button(center, d, dir, key, parent)
     b.checkedFill = Fill(CHECKED_FILL, 2)
     b.procFill = Fill(PROC_FILL, 3)
     b.flashFill = Fill(FLASH_FILL, 4)
-    b.fills = { b.checkedFill, b.procFill, b.flashFill }
+    b.attackFill = Fill(ATTACK_FILL, 5)
+    b.fills = { b.checkedFill, b.procFill, b.flashFill, b.attackFill }
 
     -- (a square sweep would spill out of the diamond: the countdown only,
     -- the icon dimmed while it runs, Mirror)
@@ -604,32 +606,59 @@ end
 local function SlotCooldown(native)
     -- (a stand-in's (GB.StandIn): its spell's or item's)
     if native.spellID then
+        local start, duration
         if C_Spell and C_Spell.GetSpellCooldown then
-            local ok, info = pcall(C_Spell.GetSpellCooldown, native.spellID)
-            if ok and type(info) == "table" then return info.startTime, info.duration end
-        elseif GetSpellCooldown then
-            local ok, start, duration = pcall(GetSpellCooldown, native.spellID)
-            if ok then return start, duration end
+            local ok, info, d = pcall(C_Spell.GetSpellCooldown, native.spellID)
+            if ok then
+                if type(info) == "table" then
+                    start, duration = info.startTime, info.duration
+                elseif info ~= nil then
+                    start, duration = info, d
+                end
+            end
         end
+        if not start and GetSpellCooldown then
+            local ok, s, d = pcall(GetSpellCooldown, native.spellID)
+            if ok then start, duration = s, d end
+        end
+        if (Secret(start) or Secret(duration) or not start) and IN.BuffTimeline and IN.BuffTimeline.GetSpellCooldown then
+            local s, d = IN.BuffTimeline.GetSpellCooldown(native.spellID)
+            if s and d then return s, d end
+        end
+        if start and not (Secret(start) or Secret(duration)) then return start, duration end
         return nil
     elseif native.itemID then
         local get = (C_Item and C_Item.GetItemCooldown) or GetItemCooldown
         if get then
             local ok, start, duration = pcall(get, native.itemID)
-            if ok then return start, duration end
+            if ok and not (Secret(start) or Secret(duration)) then return start, duration end
         end
         return nil
     end
     local action = native.action
     local special = native.SpecialActionIcon
     if action and not (special and special:IsShown()) then
+        local start, duration
         if C_ActionBar and C_ActionBar.GetActionCooldown then
-            local ok, info = pcall(C_ActionBar.GetActionCooldown, action)
-            if ok and type(info) == "table" then return info.startTime, info.duration end
-        elseif GetActionCooldown then
-            local ok, start, duration = pcall(GetActionCooldown, action)
-            if ok then return start, duration end
+            local ok, info, d = pcall(C_ActionBar.GetActionCooldown, action)
+            if ok then
+                if type(info) == "table" then
+                    start, duration = info.startTime, info.duration
+                elseif info ~= nil then
+                    start, duration = info, d
+                end
+            end
         end
+        if not start and GetActionCooldown then
+            local ok, s, d = pcall(GetActionCooldown, action)
+            if ok then start, duration = s, d end
+        end
+        -- If secret or nil in combat, ask BuffTimeline which tracks casts and learns durations
+        if (Secret(start) or Secret(duration) or not start) and IN.BuffTimeline and IN.BuffTimeline.GetActionCooldown then
+            local s, d = IN.BuffTimeline.GetActionCooldown(action)
+            if s and d then return s, d end
+        end
+        if start and not (Secret(start) or Secret(duration)) then return start, duration end
     end
     local cd = native.cooldown
     if cd and cd.GetCooldownTimes and cd:IsShown() then
@@ -990,9 +1019,9 @@ local function InteractButton()
     return top and top.Right and top.Right.ActionButton1
 end
 
-local function Yes(fn, unit)
+local function Yes(fn, a, b)
     if not fn then return false end
-    local ok, v = pcall(fn, unit)
+    local ok, v = pcall(fn, a, b)
     return ok and not Secret(v) and v and true or false
 end
 
@@ -1035,6 +1064,98 @@ local function DrawCursor(b, native)
     return ok and not Secret(drawn) and drawn and true or false
 end
 
+local petAttacking = false
+local petAttackSlotCache = {}
+
+local function IsPetAttacking()
+    if not (Yes(UnitExists, "pet") and not Yes(UnitIsDead, "pet")) then
+        petAttacking = false
+        return false
+    end
+    if petAttacking then return true end
+    if Yes(UnitExists, "pettarget") and Yes(UnitCanAttack, "pet", "pettarget")
+        and not Yes(UnitIsDead, "pettarget") then
+        return true
+    end
+    return false
+end
+
+local petWatch = CreateFrame("Frame")
+for _, e in ipairs({ "PET_ATTACK_START", "PET_ATTACK_STOP", "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED",
+    "ACTIONBAR_SLOT_CHANGED", "UPDATE_MACROS", "PET_BAR_UPDATE" }) do
+    petWatch:RegisterEvent(e)
+end
+if petWatch.RegisterUnitEvent then
+    petWatch:RegisterUnitEvent("UNIT_PET", "player")
+end
+petWatch:SetScript("OnEvent", function(_, event)
+    if event == "PET_ATTACK_START" then
+        petAttacking = true
+    elseif event == "PET_ATTACK_STOP" then
+        petAttacking = false
+    elseif event == "ACTIONBAR_SLOT_CHANGED" or event == "UPDATE_MACROS" or event == "PET_BAR_UPDATE" then
+        wipe(petAttackSlotCache)
+    elseif event == "UNIT_PET" or event == "PLAYER_ENTERING_WORLD" then
+        wipe(petAttackSlotCache)
+        if not (Yes(UnitExists, "pet") and not Yes(UnitIsDead, "pet")) then
+            petAttacking = false
+        end
+    end
+end)
+
+local function IsPetAttackSlot(action)
+    local cached = petAttackSlotCache[action]
+    if cached ~= nil then return cached end
+    local ok, kind, id = pcall(GetActionInfo, action)
+    if not ok or Secret(kind) or Secret(id) then return false end
+    local isAttack = false
+    if kind == "petaction" then
+        if id and (IF.SafePetActionInfo or GetPetActionInfo) then
+            local getInfo = IF.SafePetActionInfo or GetPetActionInfo
+            local name, _, isToken = getInfo(id)
+            if (isToken and name == "PET_ACTION_ATTACK") or name == (_G.PET_ACTION_ATTACK or "Attack") then
+                isAttack = true
+            end
+        end
+    elseif kind == "macro" and id then
+        local name, icon = GetMacroInfo(id)
+        if (name and (name:find("Pet Attack") or name:find("^IF:.*Attack"))) or icon == 132158 then
+            isAttack = true
+        else
+            local body = GetMacroBody(id)
+            if body and body:lower():find("/petattack") then
+                isAttack = true
+            end
+        end
+    end
+    petAttackSlotCache[action] = isAttack
+    return isAttack
+end
+
+local function IsPetAttackButton(b, native)
+    if not native then return false end
+    if b and b.action == "petaction:attack" then return true end
+
+    local action = native.action
+    if action and IsPetAttackSlot(action) then return true end
+
+    local icon = native.icon
+    if icon then
+        local tex = icon:GetTexture()
+        if not Secret(tex) then
+            if tex == 132158 then return true end
+            if type(tex) == "string" then
+                if b and b.petTexSeen == tex then return b.petTexMatch end
+                local match = tex:lower():find("ability_hunter_pet_attack", 1, true) ~= nil
+                if b then b.petTexSeen, b.petTexMatch = tex, match end
+                if match then return true end
+            end
+        end
+    end
+
+    return false
+end
+
 local function Mirror(b, native)
     b.native = native
     local interact = native ~= nil and native == InteractButton()
@@ -1048,6 +1169,7 @@ local function Mirror(b, native)
         b.checkedFill:SetAlpha(0)
         b.procFill:SetAlpha(0)
         b.flashFill:SetAlpha(0)
+        b.attackFill:SetAlpha(0)
         b.timer:Hide()
         SetBorder(b, SLOT.normal)
         if b.cdStart then
@@ -1147,13 +1269,41 @@ local function Mirror(b, native)
         if not (cooling or (done and done < READY)) then b.ring:SetAlpha(1) end
     end
 
+    local isFlashing = false
+    if native then
+        if native.flashing == 1 or native.flashing == true or (native.Flash and native.Flash:IsShown()) then
+            isFlashing = true
+        elseif native.action then
+            local act = native.action
+            if (Yes(IsAttackAction, act) and Yes(IsCurrentAction, act))
+                or Yes(IsAutoRepeatAction, act) then
+                isFlashing = true
+            end
+        end
+    end
+    if not isFlashing and IsPetAttacking() and IsPetAttackButton(b, native) then
+        isFlashing = true
+    end
+
+    local flashOn = isFlashing and ((math.floor(GetTime() / 0.4) % 2) == 0)
+
     -- The diamond lit: casting or channelling from it, its item's buff on
     -- you (with its ring),
     -- toggled on (GetChecked can be a secret: SetAlphaFromBoolean takes it
-    -- as it is), a proc
+    -- as it is), a proc, or flashing/blinking
     if b.casting or b.buffing then
         b.checkedFill:SetAlpha(CHECKED_ALPHA)
+        b.attackFill:SetAlpha(0)
+    elseif isFlashing then
+        if flashOn then
+            b.attackFill:SetAlpha(ATTACK_FLASH_ALPHA)
+            b.checkedFill:SetAlpha(CHECKED_ALPHA)
+        else
+            b.attackFill:SetAlpha(0)
+            b.checkedFill:SetAlpha(0)
+        end
     else
+        b.attackFill:SetAlpha(0)
         local checked = native.GetChecked and native:GetChecked()
         if not pcall(b.checkedFill.SetAlphaFromBoolean, b.checkedFill, checked, CHECKED_ALPHA, 0) then
             b.checkedFill:SetAlpha(0)
@@ -1165,7 +1315,10 @@ local function Mirror(b, native)
     local count = native.Count
     pcall(b.count.SetText, b.count, count and count:IsShown() and count:GetText() or "")
     local ok, pressed = pcall(function() return native:GetButtonState() == "PUSHED" end)
-    SetBorder(b, ok and pressed and SLOT.pressed or SLOT.normal)
+    local borderState = (ok and pressed and SLOT.pressed)
+        or (isFlashing and flashOn and SLOT.selected)
+        or SLOT.normal
+    SetBorder(b, borderState)
     -- (its glyph pressed with it, greyed while it's disabled, as the game's)
     if b.keyName then
         local state = b.disabled and 5 or (ok and pressed and 3) or 1
@@ -1234,11 +1387,10 @@ end
 -- must say so. Only with no trigger held (the top bar): an override is bound to the plain press.
 -- A tile showing something of ours in place of the game's slot: its picture (a texture),
 -- no count, ring, timer or cooldown
-local function OursTile(b, texture, atlas)
+local function OursTile(b, texture, atlas, action)
     local d = b.d
     b.count:SetText("")
     b.ring:Hide()
-    b.checkedFill:SetAlpha(0)
     b.procFill:SetAlpha(0)
     b.flashFill:SetAlpha(0)
     b.timer:Hide()
@@ -1258,6 +1410,24 @@ local function OursTile(b, texture, atlas)
     end
     b.icon:SetVertexColor(1, 1, 1)
     b.icon:SetDesaturated(false)
+
+    local isPetAttack = (action == "petaction:attack" or action == "pet:attack")
+    if isPetAttack and IsPetAttacking() then
+        local flashOn = (math.floor(GetTime() / 0.4) % 2) == 0
+        if flashOn then
+            b.attackFill:SetAlpha(ATTACK_FLASH_ALPHA)
+            b.checkedFill:SetAlpha(CHECKED_ALPHA)
+            SetBorder(b, SLOT.selected)
+        else
+            b.attackFill:SetAlpha(0)
+            b.checkedFill:SetAlpha(0)
+            SetBorder(b, SLOT.normal)
+        end
+    else
+        b.attackFill:SetAlpha(0)
+        b.checkedFill:SetAlpha(0)
+        SetBorder(b, SLOT.normal)
+    end
 end
 
 local function OverrideTile(b)
@@ -1266,7 +1436,8 @@ local function OverrideTile(b)
     if not action then return end
     local _, texture = IF.ActionInfo(action)
     if not texture then return end
-    OursTile(b, texture)
+    OursTile(b, texture, nil, action)
+end
 end
 
 -- A class action of ours, shown while the game's is (it has one for the

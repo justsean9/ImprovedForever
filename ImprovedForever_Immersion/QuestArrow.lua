@@ -391,7 +391,14 @@ local since = POLL
 local broken
 
 local function Quiet()
-    if UnitOnTaxi("player") or UnitIsDeadOrGhost("player") then return true end
+    local Flag = IN.UnitFrames and IN.UnitFrames.Flag
+    if Flag then
+        if Flag(UnitOnTaxi, "player") or Flag(UnitIsDeadOrGhost, "player") then return true end
+    else
+        local ok1, taxi = pcall(UnitOnTaxi, "player")
+        local ok2, dead = pcall(UnitIsDeadOrGhost, "player")
+        if (ok1 and not Secret(taxi) and taxi) or (ok2 and not Secret(dead) and dead) then return true end
+    end
     local dialog = ImprovedForeverNpcDialog
     return dialog and dialog:IsShown()
 end

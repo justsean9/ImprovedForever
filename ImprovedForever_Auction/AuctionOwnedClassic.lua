@@ -178,7 +178,6 @@ function OW.Render()
     message:SetText(OW.message or "")
     f.empty:SetShown(n == 0)
     f.empty:SetText(loading and "Loading..." or "No auctions of yours")
-    local fr, fg, fb = BY.FocusColor()
     for i, r in ipairs(rows) do
         local index = top + i - 1
         local a = auctions[index]
@@ -207,7 +206,6 @@ function OW.Render()
             end
             local on = index == sel
             r.focus:SetShown(on)
-            r.focus:SetVertexColor(fr, fg, fb)
         end
     end
     OW.RenderHold()

@@ -643,6 +643,14 @@ function P:StickStep(dir)
 end
 
 function P:Hide()
+    if self.holdTicker then
+        self.holdTicker:Cancel()
+        self.holdTicker = nil
+    end
+    if self.holding then
+        self.holding = nil
+        if IF.Vibe then IF.Vibe.Hold(nil) end
+    end
     -- (an open confirmation is a no)
     if self.popup then self:AnswerPopup(false) end
     self.frame:Hide()
@@ -897,18 +905,24 @@ function P:CornerTriangle(region)
     local started = GetTime()
     self.holding = region
     self.holdTicker = C_Timer.NewTicker(0.05, function(ticker)
+        if not self.frame:IsShown() or IF.InCombat() then
+            ticker:Cancel()
+            P.holdTicker, P.holding = nil, nil
+            if IF.Vibe then IF.Vibe.Hold(nil) end
+            return
+        end
         local held = IsKeyDown and IsKeyDown("PAD4")
         local elapsed = GetTime() - started
         if held and elapsed >= HOLD then
             ticker:Cancel()
-            P.holding = nil
+            P.holdTicker, P.holding = nil, nil
             if IF.Vibe and IF.Vibe.Confirm then IF.Vibe.Confirm() end
             local off = touch.ToggleOff(region)
             Done(touch.REGION_LABELS[region] .. (off and " turned off" or " turned on")
                 .. (off and touch.CORNERS[region] and " (its sides take its area)" or ""))
         elseif not held then
             ticker:Cancel()
-            P.holding = nil
+            P.holdTicker, P.holding = nil, nil
             if IF.Vibe and elapsed >= FEEL_AFTER then IF.Vibe.Hold(nil) end
             if touch.IsBound(touch.GetSettings().regions[region]) then
                 touch.SetAction(region, "none")
@@ -948,16 +962,22 @@ function P:OptionTriangle()
     local started = GetTime()
     self.holding = true
     self.holdTicker = C_Timer.NewTicker(0.05, function(ticker)
+        if not self.frame:IsShown() or IF.InCombat() then
+            ticker:Cancel()
+            P.holdTicker, P.holding = nil, nil
+            if IF.Vibe then IF.Vibe.Hold(nil) end
+            return
+        end
         local held = IsKeyDown and IsKeyDown("PAD4")
         local elapsed = GetTime() - started
         if held and elapsed >= HOLD then
             ticker:Cancel()
-            P.holding = nil
+            P.holdTicker, P.holding = nil, nil
             if IF.Vibe and IF.Vibe.Confirm then IF.Vibe.Confirm() end
             P:ResetDefault()
         elseif not held then
             ticker:Cancel()
-            P.holding = nil
+            P.holdTicker, P.holding = nil, nil
             if IF.Vibe and elapsed >= FEEL_AFTER then IF.Vibe.Hold(nil) end
             P:Unbind()
         elseif elapsed >= FEEL_AFTER and IF.Vibe then

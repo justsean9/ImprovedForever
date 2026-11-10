@@ -456,6 +456,7 @@ function menu.Close()
     CurrentPage():Hide()
     menu.UnbindPad()
     IF.Focus.DimNative(frame, false)
+    if _G.GamepadRadial then IF.Focus.Fade(_G.GamepadRadial, false) end
     frame:Hide()
     menu.repeatName = nil
     PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
@@ -509,7 +510,7 @@ menuKey:SetScript("OnUpdate", function()
                 -- (on the next frame: the game handles the press first)
                 C_Timer.After(0, function()
                     local radial = _G.GamepadRadial
-                    if radial and radial:IsShown() then radial:Hide() end
+                    if radial and radial:IsShown() then IF.Focus.Fade(radial, true) end
                     if not InCombatLockdown() then menu.Open() end
                 end)
             end

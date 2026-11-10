@@ -1493,6 +1493,7 @@ function BK.New(opts)
         Ours()
         window:Show()
         TakePad(true)
+        NativeFocus(true)
         BindEscape(true)
         self.skipRelease = IsKeyDown and IsKeyDown("PAD2") or nil
         self:Render()

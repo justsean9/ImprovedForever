@@ -92,7 +92,7 @@ function IFQuestObjectiveTrackerMixin:OnBlockHeaderClick(block, mouseButton)
 
 			rootDescription:CreateButton(toggleDetailsText, function()
 				if (InputUtil.IsGamepadUIEnabled() and GamepadHudMode:IsShown()) then
-					GamepadHudMode:Hide();
+					--[[ GamepadHudMode:Hide(): taints native HUD ]]
 				end
 				QuestUtil.OpenQuestDetails(questID);
 				self.restoreGamepadFocusOnMenuClose = false;
@@ -100,7 +100,7 @@ function IFQuestObjectiveTrackerMixin:OnBlockHeaderClick(block, mouseButton)
 
 			rootDescription:CreateButton(OBJECTIVES_SHOW_QUEST_MAP, function()
 				if (InputUtil.IsGamepadUIEnabled() and GamepadHudMode:IsShown()) then
-					GamepadHudMode:Hide();
+					--[[ GamepadHudMode:Hide(): taints native HUD ]]
 				end
 				QuestMapFrame_OpenToQuestDetails(questID);
 				self.restoreGamepadFocusOnMenuClose = false;

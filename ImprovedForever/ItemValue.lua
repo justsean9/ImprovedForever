@@ -173,8 +173,9 @@ local function QuestReason(itemID, name, bag, slot)
     end
     if name then
         local lower = name:lower()
+        local pat = "%f[%w]" .. lower:gsub("(%W)", "%%%1") .. "%f[%W]"
         for text, title in pairs(QuestNeeds()) do
-            if text:find(lower, 1, true) then return "Needed for \"" .. title .. "\"" end
+            if text:find(pat) then return "Needed for \"" .. title .. "\"" end
         end
     end
     local GD = IF.GameData

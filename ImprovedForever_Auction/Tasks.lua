@@ -121,7 +121,10 @@ end
 function TK.Remove(task)
     local tasks = TK.Tasks()
     for i, t in ipairs(tasks) do
-        if t == task then table.remove(tasks, i) end
+        if t == task then
+            table.remove(tasks, i)
+            break
+        end
     end
     TK.Changed()
 end
@@ -1226,13 +1229,15 @@ local function TrackerHasPad()
 end
 
 -- (L2 counted only once seen up: one read as down as the UI loads, a
--- trigger resting a little in, is no press)
+-- trigger resting a little in, is no press; only when our tracker fork is
+-- active, so we never take gamepad button presses while the native tracker
+-- holds focus on its own)
 local lastL2 = true
 local keys = CreateFrame("Frame")
 keys:SetScript("OnUpdate", function()
     local l2 = IsKeyDown and IsKeyDown("PADLTRIGGER") or false
     if l2 and not lastL2 and trackerFocused and TrackerHasPad() and not focus.on and panel:IsShown()
-        and not IF.InCombat() then
+        and _G.IFObjectiveTrackerFrame and _G.IFObjectiveTrackerFrame:IsShown() and not IF.InCombat() then
         TK.TakePad(true)
     end
     lastL2 = l2
@@ -1284,11 +1289,15 @@ for _, event in ipairs({ "BAG_UPDATE_DELAYED", "UNIT_SPELLCAST_SUCCEEDED", "MERC
     "GET_ITEM_INFO_RECEIVED" }) do
     pcall(events.RegisterEvent, events, event)
 end
+local function Secret(v)
+    return type(issecretvalue) == "function" and issecretvalue(v)
+end
+
 local queued = false
 events:SetScript("OnEvent", function(_, event, unit, _, spellID)
     if not IF.charDB then return end
     if event == "UNIT_SPELLCAST_SUCCEEDED" then
-        if unit ~= "player" then return end
+        if Secret(unit) or unit ~= "player" or Secret(spellID) then return end
         for _, t in ipairs(TK.Tasks()) do
             if t.recipeID == spellID then
                 t.made = (t.made or 0) + 1

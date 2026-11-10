@@ -853,6 +853,10 @@ local function ItemCount(value)
     return getCount and getCount(value) or 0
 end
 
+local function Secret(v)
+    return type(issecretvalue) == "function" and issecretvalue(v)
+end
+
 -- An entry's cooldown: start, duration (an item's, a gear slot's item's, a
 -- spell's), or nil
 local function EntryCooldown(entry)
@@ -860,21 +864,40 @@ local function EntryCooldown(entry)
         or (entry.type == "item" and tonumber(tostring(entry.value):match("item:(%d+)")))
     if itemID then
         local get = (C_Container and C_Container.GetItemCooldown) or GetItemCooldown
-        if get then return get(itemID) end
-    elseif entry.spellID then
-        if C_Spell and C_Spell.GetSpellCooldown then
-            local info = C_Spell.GetSpellCooldown(entry.spellID)
-            if type(info) == "table" then return info.startTime, info.duration end
-        elseif GetSpellCooldown then
-            return GetSpellCooldown(entry.spellID)
+        if get then
+            local ok, start, duration = pcall(get, itemID)
+            if ok and not (Secret(start) or Secret(duration)) then return start, duration end
         end
+    elseif entry.spellID then
+        local start, duration
+        if C_Spell and C_Spell.GetSpellCooldown then
+            local ok, info, d = pcall(C_Spell.GetSpellCooldown, entry.spellID)
+            if ok then
+                if type(info) == "table" then
+                    start, duration = info.startTime, info.duration
+                elseif info ~= nil then
+                    start, duration = info, d
+                end
+            end
+        end
+        if not start and GetSpellCooldown then
+            local ok, s, d = pcall(GetSpellCooldown, entry.spellID)
+            if ok then start, duration = s, d end
+        end
+        if (Secret(start) or Secret(duration) or not start) and IF.Interface and IF.Interface.BuffTimeline and IF.Interface.BuffTimeline.GetSpellCooldown then
+            local s, d = IF.Interface.BuffTimeline.GetSpellCooldown(entry.spellID)
+            if s and d then return s, d end
+        end
+        if start and not (Secret(start) or Secret(duration)) then return start, duration end
     end
 end
 
 -- Its swipe (not the global cooldown's)
 local function ShowCooldown(cooldown, entry)
     local start, duration = EntryCooldown(entry or {})
-    if entry and start and duration and start > 0 and duration > 1.5 then
+    local ok = entry and start and duration and not (Secret(start) or Secret(duration))
+        and type(start) == "number" and type(duration) == "number" and start > 0 and duration > 1.5
+    if ok then
         cooldown:SetCooldown(start, duration)
         cooldown:Show()
     else
@@ -939,6 +962,8 @@ function IF.RingBindAction(entry)
         if index and index > 0 then
             return "macro:" .. entry.macroName
         end
+    elseif entry.petAction then
+        return "petaction:" .. entry.petAction
     end
     return nil
 end
@@ -1087,7 +1112,10 @@ end
 local function ShowTooltip(entry)
     local tip = GameTooltip
     local unit = entry and entry.unit
-    if unit and not (UnitExists and UnitExists(unit)) then unit = nil end
+    if unit then
+        local ok, exists = pcall(UnitExists, unit)
+        if not ok or (type(issecretvalue) == "function" and issecretvalue(exists)) or not exists then unit = nil end
+    end
     if not (entry and (unit or entry.spellID or entry.type == "item" or entry.tip or entry.reagents)) then
         if tip:GetOwner() == ring then tip:Hide() end
         return
@@ -1540,7 +1568,12 @@ end
 ring:HookScript("OnShow", function()
     ring:SetAlpha(1)
     local native = NativeRadial()
-    if native and native:IsShown() then native:Hide() end
+    if native and native:IsShown() then IF.Focus.Fade(native, true) end
+end)
+
+ring:HookScript("OnHide", function()
+    local native = NativeRadial()
+    if native then IF.Focus.Fade(native, false) end
 end)
 
 if EventRegistry and EventRegistry.RegisterCallback then

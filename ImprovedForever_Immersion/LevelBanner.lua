@@ -208,7 +208,7 @@ local function Step()
     if p >= 1 and not shownAt then shownAt = GetTime() end
     if goal == 1 and shownAt and GetTime() - shownAt > HOLD then goal = 0 end
     if p <= 0 then
-        banner:Hide()
+        if banner:IsShown() then banner:Hide() end
         return
     end
     banner:Show()

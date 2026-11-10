@@ -598,7 +598,11 @@ local function InView(we, wn, e, n, c, s, units, r)
     return cx * cx + cy * cy <= r * r
 end
 
+local placeWait = 0
 local function Place(_, elapsed)
+    placeWait = placeWait + (elapsed or 0)
+    if placeWait < 0.05 then return end
+    elapsed, placeWait = placeWait, 0
     local radius = Minimap:GetWidth() / 2
     local view = C_Minimap and C_Minimap.GetViewRadius and C_Minimap.GetViewRadius() or radius
     local units = radius / view
@@ -786,10 +790,18 @@ function MM.Key()
     return IF.db and IF.db.minimapKey
 end
 
+local lastSpec, lastHeld, lastPressed
 local function Parts(spec)
-    local held, pressed = spec:match("^(.-)%+(.+)$")
-    if held then return held, pressed end
-    return nil, spec
+    if spec ~= lastSpec then
+        lastSpec = spec
+        local held, pressed = spec:match("^(.-)%+(.+)$")
+        if held then
+            lastHeld, lastPressed = held, pressed
+        else
+            lastHeld, lastPressed = nil, spec
+        end
+    end
+    return lastHeld, lastPressed
 end
 
 -- Its name: "L1 + D-pad Up"; glyphs too with size

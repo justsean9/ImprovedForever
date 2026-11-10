@@ -16,12 +16,18 @@ local function Safe(object, method, ...)
     end
 end
 
+local function Secret(v)
+    return type(issecretvalue) == "function" and issecretvalue(v)
+end
+
 -- tostring() errors on no value at all, which Safe returns for some getters.
 local function Str(value)
+    if Secret(value) then return "<hidden>" end
     return tostring(value)
 end
 
 local function Num(value)
+    if Secret(value) then return "<hidden>" end
     return type(value) == "number" and string.format("%.1f", value) or tostring(value)
 end
 
@@ -209,11 +215,12 @@ function IF.StartTouchProbe()
             snapshot("raw.rawButtons.", raw.rawButtons)
         end
         if GetTime() - out.t0 > 15 then
-            self:SetScript("OnUpdate", nil)
             listener:SetScript("OnGamePadButtonDown", nil)
             listener:SetScript("OnGamePadButtonUp", nil)
             listener:SetScript("OnKeyDown", nil)
-            if listener.EnableGamePadButton and not IF.InCombat() then
+            if IF.InCombat() then return end
+            self:SetScript("OnUpdate", nil)
+            if listener.EnableGamePadButton then
                 listener:EnableGamePadButton(false)
             end
             out.t0 = nil

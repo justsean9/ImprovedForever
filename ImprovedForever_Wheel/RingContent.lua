@@ -12,7 +12,9 @@ IF.MAX_SLOTS = MAX_SLOTS
 
 local DEFAULT_EMOTES = { "wave", "hello", "thank", "cheer", "dance", "laugh", "bow", "roar" }
 
-local SpellInfo, ItemNameByID, ItemIconByID = IF.SpellInfo, IF.ItemNameByID, IF.ItemIconByID
+local function Secret(v)
+    return type(issecretvalue) == "function" and issecretvalue(v)
+end
 
 ---------------------------------------------------------------------------
 -- Actions
@@ -40,6 +42,9 @@ function IF.ActionEntry(action)
         return body and { label = name, icon = icon, type = "macro", value = body, macroName = value }
     elseif kind == "emote" then
         return { label = name, icon = icon, type = "macro", value = "/" .. value }
+    elseif kind == "petaction" or kind == "pet" then
+        local macro = IF.Actions and IF.Actions.Macro and IF.Actions.Macro(action)
+        return macro and { label = name, icon = icon, type = "macro", value = macro, petAction = value }
     end
 end
 
@@ -183,7 +188,9 @@ local function ConsumableStat(bag, slot, itemID)
     local use = {}
     for _, line in ipairs(data.lines) do
         local text = line.leftText
-        if type(text) == "string" and text:sub(1, #USE) == USE then use[#use + 1] = text:sub(#USE + 1) end
+        if not Secret(text) and type(text) == "string" and text:sub(1, #USE) == USE then
+            use[#use + 1] = text:sub(#USE + 1)
+        end
     end
     local stat = ParseStat(table.concat(use, " "))
     statCache[itemID] = stat or false

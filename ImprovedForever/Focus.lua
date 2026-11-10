@@ -66,7 +66,6 @@ end
 -- forbidden). An alpha animation of ours, aimed at it, draws it at 0
 -- instead (or at alpha, 0 to 1: dimmed); its own alpha untouched.
 ---------------------------------------------------------------------------
-local fader = CreateFrame("Frame")
 local fades = {}
 
 function F.Fade(region, hide, alpha)
@@ -75,26 +74,41 @@ function F.Fade(region, hide, alpha)
     local group = fades[region]
     if not group then
         if not hide then return end
-        local ok
-        ok, group = pcall(function()
-            local g = fader:CreateAnimationGroup()
-            g:CreateAnimation("Alpha"):SetTarget(region)
-            return g
+        local anim
+        local ok, g = pcall(function()
+            local ag = region.CreateAnimationGroup and region:CreateAnimationGroup()
+            if not ag and region.GetParent then
+                local p = region:GetParent()
+                ag = p and p.CreateAnimationGroup and p:CreateAnimationGroup()
+            end
+            if ag then
+                anim = ag:CreateAnimation("Alpha")
+            end
+            return ag
         end)
-        if not ok or not group then
-            group = region:CreateAnimationGroup()
-            group:CreateAnimation("Alpha")
-        end
-        local a = group:GetAnimations()
-        a:SetDuration(3600)
-        group:SetLooping("REPEAT")
+        if not ok or not g or not anim then return end
+        group = g
+        group.anim = anim
+        if anim.SetDuration then anim:SetDuration(3600) end
+        if group.SetLooping then group:SetLooping("REPEAT") end
         fades[region] = group
+    end
+    local anim = group.anim
+    if not anim then
+        local anims = group.GetAnimations and group:GetAnimations()
+        if type(anims) == "table" then
+            anim = anims[1]
+        elseif type(anims) == "userdata" or (anims and anims.SetFromAlpha) then
+            anim = anims
+        end
+        group.anim = anim
     end
     if hide and group.alpha ~= alpha then
         group:Stop()
-        local a = group:GetAnimations()
-        a:SetFromAlpha(alpha)
-        a:SetToAlpha(alpha)
+        if anim and anim.SetFromAlpha and anim.SetToAlpha then
+            anim:SetFromAlpha(alpha)
+            anim:SetToAlpha(alpha)
+        end
         group.alpha = alpha
     end
     if hide and not group:IsPlaying() then
@@ -430,7 +444,7 @@ function F.Place(win)
         x, y = Beside(win, left, right, top)
     else
         local taken = TakenRight(win)
-        x = taken and (taken + Layout("PANEl_SPACING_X", 32)) or (Layout("LEFT_OFFSET", 16) + PANEL_X)
+        x = taken and (taken + Layout("PANEL_SPACING_X", 32)) or (Layout("LEFT_OFFSET", 16) + PANEL_X)
         -- (no room past them: as far right as it fits)
         x = math.min(x, (UIParent:GetWidth() or x) - win:GetWidth() * scale)
         y = Layout("TOP_OFFSET", -116)
@@ -604,9 +618,17 @@ function F.Cursor(parent)
     -- (only where the pad is: its window glowing, when it has a glow; and
     -- only with the pad in hand)
     cur:SetScript("OnUpdate", function(self)
-        local win = TopWindow(self)
+        local win = self.topWin
+        if not win then
+            win = TopWindow(self)
+            self.topWin = win
+        end
         local glow = win and win.FrameGlow
-        self:SetAlpha(((glow and not glow:IsShown()) or not IF.Input.Pad()) and 0 or 1)
+        local want = ((glow and not glow:IsShown()) or not IF.Input.Pad()) and 0 or 1
+        if self.shownAlpha ~= want then
+            self.shownAlpha = want
+            self:SetAlpha(want)
+        end
     end)
     function cur:Point(target, dx, dy)
         local _, nav = NativeCursor()

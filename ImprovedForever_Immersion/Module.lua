@@ -151,7 +151,15 @@ function IN.Watcher(name, every, fn)
 end
 
 function IN.Settings()
-    local db = IF.db
+    local db = IF.db or ImprovedForeverDB
+    if not db then
+        local settings = {}
+        for key, value in pairs(DEFAULTS) do
+            settings[key] = value
+        end
+        return settings
+    end
+    IF.db = db
     db.plateLog = nil           -- (the nameplate probes' logs, done)
     db.plateFly = nil
     db.npLog = nil              -- (the nameplate probes' log, done)
@@ -175,5 +183,6 @@ function IN.Settings()
     db.hudLog = nil
     -- (the breath probes' logs)
     db.breathLog, db.waterLog = nil, nil
+    db.ndLog, db.chatLog = nil, nil
     return settings
 end

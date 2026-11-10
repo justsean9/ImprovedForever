@@ -418,7 +418,19 @@ function W:StickStep(dir)
     self:Select(self.index + dir)
 end
 
+function W:CancelHold()
+    if self.holdTicker then
+        self.holdTicker:Cancel()
+        self.holdTicker = nil
+    end
+    if self.holding then
+        self.holding = nil
+        if IF.Vibe then IF.Vibe.Hold(nil) end
+    end
+end
+
 function W:Hide()
+    self:CancelHold()
     self:FinishRename(nil)
     -- An open confirmation is a no
     if self.popup then self:AnswerPopup(false) end
@@ -437,7 +449,10 @@ end
 function W:Select(i)
     local entries = self:Entries()
     i = math.max(1, math.min(i, #entries))
-    if i ~= self.index then menu.Disarm() end
+    if i ~= self.index then
+        self:CancelHold()
+        menu.Disarm()
+    end
     self.settings = false
     self.index = i
     local wheel = entries[i]
@@ -579,17 +594,21 @@ function W:PressOrHold(key, onPress, onHold)
     if self.holding then return end
     local started = GetTime()
     self.holding = key
-    C_Timer.NewTicker(0.05, function(ticker)
+    self.holdTicker = C_Timer.NewTicker(0.05, function(ticker)
+        if not self.frame:IsShown() or IF.InCombat() then
+            W:CancelHold()
+            return
+        end
         local held = IsKeyDown and IsKeyDown(key)
         local elapsed = GetTime() - started
         if held and elapsed >= HOLD then
             ticker:Cancel()
-            W.holding = nil
+            W.holdTicker, W.holding = nil, nil
             if IF.Vibe and IF.Vibe.Confirm then IF.Vibe.Confirm() end
             onHold()
         elseif not held then
             ticker:Cancel()
-            W.holding = nil
+            W.holdTicker, W.holding = nil, nil
             if IF.Vibe and elapsed >= FEEL_AFTER then IF.Vibe.Hold(nil) end
             onPress()
         elseif elapsed >= FEEL_AFTER and IF.Vibe then
@@ -790,36 +809,6 @@ end
 ---------------------------------------------------------------------------
 -- The pad
 ---------------------------------------------------------------------------
--- Around the wheel: the nearest slot of the page that way
-function W:Nearest(dir)
-    local p = (self.slot - 1) % PER_PAGE + 1
-    local fx, fy = SlotPoint(p)
-    local best, bestScore
-    for i = 1, PER_PAGE do
-        if i ~= p then
-            local x, y = SlotPoint(i)
-            local dx, dy = x - fx, y - fy
-            local main, cross
-            if dir == "UP" then
-                main, cross = -dy, dx
-            elseif dir == "DOWN" then
-                main, cross = dy, dx
-            elseif dir == "LEFT" then
-                main, cross = -dx, dy
-            else
-                main, cross = dx, dy
-            end
-            if main > 6 and math.abs(cross) <= main * 2.2 then
-                local score = main + math.abs(cross) * 2
-                if not bestScore or score < bestScore then best, bestScore = i, score end
-            end
-        end
-    end
-    return best and self:PageBase() + best
-end
-
-local DIRS = { UP = true, DOWN = true, LEFT = true, RIGHT = true }
-
 -- The same place on the previous / next page (Buffs: 3 pages of 8)
 function W:StepPage(step)
     local wheel = self:Current()
@@ -1013,14 +1002,14 @@ function W:Render()
     f.title:SetText(isNew and "New wheel" or wheel.label)
     local pages = isNew and 1 or Pages(wheel)
     -- Under the count: its page, and what opens it
-    local lines = {}
-    if isNew then lines[1] = IF.ButtonName("A") .. " makes one" end
-    if pages > 1 then lines[#lines + 1] = format("Page %d / %d", base / PER_PAGE + 1, pages) end
+    local kickerLines = {}
+    if isNew then kickerLines[1] = IF.ButtonName("A") .. " makes one" end
+    if pages > 1 then kickerLines[#kickerLines + 1] = format("Page %d / %d", base / PER_PAGE + 1, pages) end
     if not isNew then
         local hotkey = MW.HotkeyText(wheel.key)
-        lines[#lines + 1] = hotkey and ("|cff9fd8e2" .. hotkey .. "|r") or "Not bound"
+        kickerLines[#kickerLines + 1] = hotkey and ("|cff9fd8e2" .. hotkey .. "|r") or "Not bound"
     end
-    f.kicker:SetText(table.concat(lines, "\n"))
+    f.kicker:SetText(table.concat(kickerLines, "\n"))
     -- The hub shows only what the wheel is bound to
     f.title:Hide()
     f.kicker:Hide()

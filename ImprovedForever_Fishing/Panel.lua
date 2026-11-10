@@ -257,6 +257,13 @@ local hits, knockAt = {}, nil
 
 -- (the session's numbers; what it caught, in the order first caught, the
 -- latest kept on once the cord is full)
+local drawList = {}
+local lastDrawSession, lastDrawCatches, lastDrawHung
+local function SortCaught(a, b)
+    if (a.first or 0) ~= (b.first or 0) then return (a.first or 0) < (b.first or 0) end
+    return (a.id or 0) < (b.id or 0)
+end
+
 local function Draw()
     local s = Session()
     if not s then return end
@@ -265,12 +272,14 @@ local function Draw()
     if (s.escapes or 0) > 0 then parts[#parts + 1] = ("%d got away"):format(s.escapes) end
     parts[#parts + 1] = Minutes(ended - (s.start or ended))
     stats:SetText(table.concat(parts, "  ·  "))
-    local list = {}
+    if s == lastDrawSession and (s.catches or 0) == lastDrawCatches and maxHung == lastDrawHung then
+        return
+    end
+    lastDrawSession, lastDrawCatches, lastDrawHung = s, s.catches or 0, maxHung
+    wipe(drawList)
+    local list = drawList
     for _, item in pairs(s.items or {}) do list[#list + 1] = item end
-    table.sort(list, function(a, b)
-        if (a.first or 0) ~= (b.first or 0) then return (a.first or 0) < (b.first or 0) end
-        return (a.id or 0) < (b.id or 0)
-    end)
+    table.sort(list, SortCaught)
     local from = math.max(1, #list - maxHung + 1)
     local n = #list - from + 1
     for k = 1, n do

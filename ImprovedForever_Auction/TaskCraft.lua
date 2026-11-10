@@ -225,7 +225,7 @@ local function Render()
     -- (its own focus glow and legend while it has the pad, as the game's
     -- windows; L2 or R2, by the side it's on, to the profession window)
     local ours = TC.switch.focus == "ours"
-    IF.Focus.Glow(panel, ours)
+    IF.Focus.Glow(panel, ours and IF.Input.Pad())
     legend:SetShown(ours)
     local hint = TC.switch:Hint()
     if not hint then return legend:Set(PROMPTS) end
@@ -441,21 +441,18 @@ local function InPrompt()
     return inPrompt or nil
 end
 
--- Puts it after the last of the game's prompts, the box widened to hold it
+-- Puts it after the last of the game's prompts (without mutating box's width)
 local function PlaceInLegend(legend)
     local holder = InPrompt()
     local box = legend.promptContainerFrame
     if not (holder and box) then return false end
     local width = box:GetWidth()
-    -- The game laid its legend out again (or a new box): that's its width
-    if holder.box ~= box or not holder.setWidth or math.abs(width - holder.setWidth) > 0.5 then
+    if holder.box ~= box or not holder.baseWidth or math.abs(width - holder.baseWidth) > 0.5 then
         holder.box, holder.baseWidth = box, width
         holder.prompt:ClearAllPoints()
         holder.prompt:SetPoint("TOPLEFT", box, "TOPLEFT", width - LEGEND_PAD + PROMPT_GAP, -LEGEND_PAD)
     end
     holder:SetFrameLevel(box:GetFrameLevel() + 2)
-    holder.setWidth = holder.baseWidth + PROMPT_GAP + holder.prompt:GetWidth()
-    box:SetWidth(holder.setWidth)
     holder:Show()
     return true
 end
@@ -464,12 +461,7 @@ local function GiveBackWidth()
     local holder = inPrompt
     if not holder or not holder:IsShown() then return end
     holder:Hide()
-    -- The box's own width back, unless the game has set it since
-    local box = holder.box
-    if box and holder.setWidth and math.abs(box:GetWidth() - holder.setWidth) <= 0.5 then
-        box:SetWidth(holder.baseWidth)
-    end
-    holder.box, holder.setWidth = nil, nil
+    holder.box, holder.baseWidth = nil, nil
 end
 
 local function SetAddRing(p)
@@ -500,15 +492,20 @@ addButton:Hide()
 
 local addShown = false              -- the prompt up last frame (the press checked against it)
 local watch = CreateFrame("Frame")
-watch:SetScript("OnUpdate", function()
+local idleWait = 0
+watch:SetScript("OnUpdate", function(_, elapsed)
     local frame = _G.ProfessionsFrame
     if not (frame and frame:IsShown()) then
+        idleWait = idleWait + (elapsed or 0)
+        if idleWait < 0.25 and not addLegend:IsShown() and not addButton:IsShown() and not addStart then return end
+        idleWait = 0
         if addLegend:IsShown() then addLegend:Hide() end
         if addButton:IsShown() then addButton:Hide() end
         GiveBackWidth()
         addStart, addWasDown, addShown = nil, false, false
         return
     end
+    idleWait = 0
     local mouseAdd = not IF.Input.Pad() and not panel:IsShown() and not IF.InCombat() and CurrentRecipe() ~= nil
     if mouseAdd and not addButton:IsShown() then
         addButton:ClearAllPoints()

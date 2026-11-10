@@ -70,7 +70,7 @@ end
 local function Render()
     if not (panel and panel:IsShown()) then return end
     local ours = focus == "ours"
-    IF.Focus.Glow(panel, ours)
+    IF.Focus.Glow(panel, ours and Pad())
     if ours then SetHints(Hints()) else legend:Hide() end
     -- (the cursor on the picked row follows the pad)
     if View() == "people" then

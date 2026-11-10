@@ -76,6 +76,7 @@ EVERYWHERE = [
     # Ours keeps its own (Blizzard_Quest.lua, Core.lua).
     ("QuestCache:Get(", "IFQuestCache:Get("),
     ("QuestUtil.CanCreateQuestGroup(", "IFCanCreateQuestGroup("),
+    ("GamepadHudMode:Hide();", "--[[ GamepadHudMode:Hide(): taints native HUD ]]"),
 ]
 
 

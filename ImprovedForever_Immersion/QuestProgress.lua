@@ -148,7 +148,7 @@ local function Step()
     if p >= 1 and not heldFrom then heldFrom = now end
     if goal == 1 and heldFrom and now - heldFrom > HOLD then goal = 0 end
     if p <= 0 then
-        banner:Hide()
+        if banner:IsShown() then banner:Hide() end
         return
     end
     banner:Show()

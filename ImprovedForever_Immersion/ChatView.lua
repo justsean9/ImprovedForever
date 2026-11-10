@@ -114,11 +114,21 @@ local function Rebuild(frame)
 end
 
 -- Over the game's frame, by its rect (it's moved in Edit Mode, resized)
+local function Secret(v)
+    return type(issecretvalue) == "function" and issecretvalue(v)
+end
+
 local placed = {}
 local function Place(frame)
     local l, b, w, h = frame:GetRect()
     if not (l and b and w and h) then return false end
+    if Secret(l) or Secret(b) or Secret(w) or Secret(h) then
+        return placed.l ~= nil
+    end
     local k = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    if Secret(k) then
+        return placed.l ~= nil
+    end
     l, b, w, h = l * k, b * k, w * k, h * k
     if placed.l ~= l or placed.b ~= b or placed.w ~= w or placed.h ~= h then
         placed.l, placed.b, placed.w, placed.h = l, b, w, h

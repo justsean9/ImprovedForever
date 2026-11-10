@@ -365,10 +365,12 @@ if overlay.EnableGamePadButton then
     overlay:EnableGamePadButton(false)
 end
 
-overlay:SetScript("OnUpdate", function()
+local renderWait = 0
+overlay:SetScript("OnUpdate", function(_, elapsed)
     -- Gone from under us: the chat closed, lost the pad, or combat (or the
     -- mouse taken up: its own links are clicked)
     if FocusedChat() ~= chat or IF.InCombat() or not IF.Input.Pad() then return Close() end
+    local dirty = false
     if pendingMove then
         local step = pendingMove
         pendingMove = nil
@@ -376,11 +378,16 @@ overlay:SetScript("OnUpdate", function()
         local index = Find(rows)
         local to = index and rows[index + step]
         if to then selected, linkIndex = to.messageInfo, 0 end
+        dirty = true
     end
     if held and IsKeyDown and IsKeyDown(held) and GetTime() >= nextRepeat then
         nextRepeat = GetTime() + REPEAT_RATE
         Press(held)
+        dirty = true
     end
+    renderWait = renderWait + (elapsed or 0)
+    if not dirty and renderWait < 0.05 then return end
+    renderWait = 0
     -- (new lines in, a scroll by the stick: the light follows the line)
     Render()
 end)
@@ -392,7 +399,7 @@ events:SetScript("OnEvent", Close)
 ---------------------------------------------------------------------------
 -- D-pad Up watched while the chat has the pad, its prompt under the chat
 ---------------------------------------------------------------------------
-local wasDown, shown = false, false
+local wasDown, shown, lastAnchor = false, false, nil
 local watch = CreateFrame("Frame")
 watch:SetScript("OnUpdate", function()
     if not IF.db then return end
@@ -401,22 +408,27 @@ watch:SetScript("OnUpdate", function()
     local down = IsKeyDown and IsKeyDown(OPEN_KEY) or false
     -- (a press counts if the prompt was up just before it)
     if window and down and not wasDown and shown then
-        wasDown, shown = down, false
+        wasDown, shown, lastAnchor = down, false, nil
         openLegend:Hide()
         return CL.Open(window)
     end
     wasDown = down
     shown = window and true or false
     if window then
-        openLegend:ClearAllPoints()
         local chatLegend = ChatLegend(window)
-        if chatLegend and chatLegend:IsVisible() then
-            openLegend:SetPoint("LEFT", chatLegend, "RIGHT", 6, 0)
-        else
-            openLegend:SetPoint("TOPLEFT", window.editBox, "BOTTOMLEFT", 0, -4)
+        local anchor = (chatLegend and chatLegend:IsVisible()) and chatLegend or window.editBox
+        if not openLegend:IsShown() or anchor ~= lastAnchor then
+            lastAnchor = anchor
+            openLegend:ClearAllPoints()
+            if anchor == chatLegend then
+                openLegend:SetPoint("LEFT", chatLegend, "RIGHT", 6, 0)
+            else
+                openLegend:SetPoint("TOPLEFT", window.editBox, "BOTTOMLEFT", 0, -4)
+            end
+            openLegend:Set(OPEN_PROMPTS)
         end
-        openLegend:Set(OPEN_PROMPTS)
     elseif openLegend:IsShown() then
+        lastAnchor = nil
         openLegend:Hide()
     end
 end)
@@ -443,7 +455,10 @@ function CL.Probe()
     for i, link in ipairs(Links(text)) do
         local ok, areas = pcall(line.CalculateScreenAreaFromCharacterSpan, line, link.s, link.e)
         local area = ok and type(areas) == "table" and areas[1]
+        local plainArea = area and not Secret(area.left) and not Secret(area.bottom)
+            and not Secret(area.width) and not Secret(area.height)
         IF.Print(("chatlines: link %d %s %s, bytes %d-%d, area %s"):format(i, link.kind, link.label, link.s, link.e,
-            area and ("%d,%d %dx%d"):format(area.left, area.bottom, area.width, area.height) or tostring(areas)))
+            plainArea and ("%d,%d %dx%d"):format(area.left, area.bottom, area.width, area.height)
+            or (area and "<secret>" or tostring(areas))))
     end
 end

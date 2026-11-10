@@ -1419,7 +1419,7 @@ local function CastReleased()
     V.EndLoop("cast")
     if cast.ended then return end
     cast.ended = true
-    if cast.shaped and not cast.timing.fishing then V.Release() end
+    if cast.shaped and cast.timing and not cast.timing.fishing then V.Release() end
 end
 
 local CAST_HANDLERS = {
@@ -1625,7 +1625,8 @@ local function Buff(i)
         local _
         name, _, _, _, duration, expires = UnitBuff("player", i)
     end
-    if name == nil or secret(name) then return name end
+    if secret(name) then return HIDDEN end
+    if name == nil then return nil end
     if secret(duration) or secret(expires) or not (duration and expires) or duration <= 0 then return name end
     return name, expires - duration
 end
@@ -1639,8 +1640,8 @@ rest:SetScript("OnEvent", function()
     local eat, drink = false, false
     for i = 1, 40 do
         local name, start = Buff(i)
+        if secret(name) or name == HIDDEN then return end
         if name == nil then break end
-        if name == HIDDEN or secret(name) then return end
         local kind = restByName[name]
         if kind == "eat" or kind == "both" then eat = start or GetTime() end
         if kind == "drink" or kind == "both" then drink = start or GetTime() end

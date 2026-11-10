@@ -268,7 +268,6 @@ local function RenderItems()
     itemsBox.empty:SetShown(n == 0)
     itemsBox.empty:SetText(#TK.Tasks() == 0 and "No tasks yet"
         or ("Nothing to buy here" .. (vendorCount > 0 and "" or ":|nthe bags hold it all")))
-    local fr, fg, fb = BY.FocusColor()
     for i, row in ipairs(itemRows) do
         local index = itemTop + i - 1
         local e = items[index]
@@ -281,7 +280,7 @@ local function RenderItems()
                 line = "buy " .. e.missing .. "  ·  have " .. e.have .. "/" .. e.need,
             })
             row.focus:SetShown(index == itemSel)
-            row.focus:SetVertexColor(fr, fg, fb, column == "items" and 1 or 0.35)
+            row.focus:SetAlpha(column == "items" and 1 or 0.35)
         end
     end
 end

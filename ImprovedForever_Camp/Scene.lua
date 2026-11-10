@@ -32,19 +32,48 @@ local BENEFITS = "Camp Benefits"
 local NEARBY = "Campfire Nearby"
 local FONT = "Fonts\\MORPHEUS.TTF"
 
--- (faded: frames of ours, by name, the game's minimap and tooltip and,
--- without ours, its tracker)
-local FADED = { "ImprovedForeverGamepadBar", "ImprovedForeverRecentSlot", "ImprovedForeverPlayerFrame",
+-- (faded: frames of ours, by name, the game's minimap and tooltip, action bars,
+-- unit frames, quest trackers and world navigation)
+local FADED = {
+    -- ImprovedForever frames
+    "ImprovedForeverGamepadBar", "ImprovedForeverRecentSlot", "ImprovedForeverPlayerFrame",
     "ImprovedForeverMinionCard1", "ImprovedForeverPartyCard1", "ImprovedForeverPartyCard2",
     "ImprovedForeverPartyCard3", "ImprovedForeverPartyCard4", "ImprovedForeverPartyCasts",
     "ImprovedForeverBuffList", "ImprovedForeverCooldownTimeline",
-    "ImprovedForeverChatView", "ImprovedForeverPlayerHealth", "IFObjectiveTrackerFrame",
-    "ImprovedForeverNpcDialog", "ImprovedForeverMinimapLabels", "ImprovedForeverMinimapAlert",
-    "ImprovedForeverQuestArrow", "ImprovedForeverZoneBanner", "ImprovedForeverHeaderRule",
-    "ImprovedForeverTargetHeader", "ImprovedForeverLevelBanner", "ImprovedForeverQuestProgress", "MinimapCluster", "Minimap",
-    -- (the tooltip: the faded HUD still takes the mouse, a buff under it
-    -- shows its tooltip; any other tooltip has no place in the scene either)
-    "GameTooltip" }
+    "ImprovedForeverChatView", "ImprovedForeverPlayerHealth", "ImprovedForeverPlayerCast",
+    "IFObjectiveTrackerFrame", "ImprovedForeverNpcDialog", "ImprovedForeverMinimapLabels",
+    "ImprovedForeverMinimapAlert", "ImprovedForeverQuestArrow", "ImprovedForeverZoneBanner",
+    "ImprovedForeverHeaderRule", "ImprovedForeverTargetHeader", "ImprovedForeverLevelBanner",
+    "ImprovedForeverQuestProgress",
+
+    -- Native Unit Frames
+    "PlayerFrame", "PetFrame", "TargetFrame", "FocusFrame", "PartyFrame", "CompactPartyFrame",
+    "BossTargetFrameContainer",
+
+    -- Native Action Bars & Gamepad UI
+    "GamepadMainActionBarFrame", "MainActionBar", "MainMenuBar",
+    "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarRight", "MultiBarLeft",
+    "StanceBar", "PetActionBar", "PossessActionBar", "OverrideActionBar",
+    "MicroMenuContainer", "BagsBar", "MicroButtonAndBagsBar",
+    "MainStatusTrackingBarContainer", "SecondaryStatusTrackingBarContainer", "StatusTrackingBarManager",
+
+    -- Native Auras & Map
+    "BuffFrame", "DebuffFrame", "TemporaryEnchantFrame",
+    "MinimapCluster", "Minimap",
+
+    -- Native Chat
+    "ChatFrame1", "GeneralDockManager", "QuickJoinToastButton", "ChatAlertFrame",
+
+    -- Native Trackers & World Navigation
+    "ObjectiveTrackerFrame", "SuperTrackedFrame",
+
+    -- Addon Trackers
+    "Questie_BaseFrame", "QuestieTracker",
+
+    -- UI Widgets & Tooltips
+    "UIWidgetPowerBarContainerFrame", "UIWidgetBelowMinimapContainerFrame", "UIWidgetTopCenterContainerFrame",
+    "GameTooltip"
+}
 
 -- What you're doing by the fire, by the camp object the benefit's line
 -- names ("Lodestone: ..."); FIRE: the fire alone, after those
@@ -172,7 +201,7 @@ local function Left()
     for i = 1, 40 do
         local ok, d = pcall(C_UnitAuras.GetAuraDataByIndex, "player", i, "HELPFUL")
         if not ok or not d then return nil end
-        if d.name == WELCOMING then
+        if not (issecretvalue and issecretvalue(d.name)) and d.name == WELCOMING then
             if issecretvalue and (issecretvalue(d.expirationTime) or issecretvalue(d.duration)) then return nil end
             if d.duration and d.duration > 0 then return math.max(0, d.expirationTime - GetTime()) end
             return 0
@@ -191,7 +220,7 @@ function C.Rewards()
     for i = 1, 40 do
         local ok, d = pcall(C_UnitAuras.GetAuraDataByIndex, "player", i, "HELPFUL")
         if not ok or not d then return nil end
-        if d.name == BENEFITS then
+        if not (issecretvalue and issecretvalue(d.name)) and d.name == BENEFITS then
             local expires = d.expirationTime
             if issecretvalue and issecretvalue(expires) then expires = nil end
             local okT, tip = pcall(C_TooltipInfo.GetUnitAura, "player", i, "HELPFUL")
@@ -454,10 +483,8 @@ actions:SetSize(240, 30)
 actions:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -30, -34)
 actions:Hide()
 -- (flat, dark, thin gold rule, the scene's own face: lit when the mouse is over)
--- (secure: its press is a secure click on a game button; ForceQuit is protected, so a
--- call from our code is ADDON_ACTION_BLOCKED)
-local function ActionButton(text, run, secure)
-    local b = CreateFrame("Button", nil, actions, secure and "SecureActionButtonTemplate" or nil)
+local function ActionButton(text, run)
+    local b = CreateFrame("Button", nil, actions)
     b:SetSize(112, 30)
     local fill = b:CreateTexture(nil, "BACKGROUND")
     fill:SetAllPoints()
@@ -487,15 +514,7 @@ local function ActionButton(text, run, secure)
     Light(false)
     b:SetScript("OnEnter", function() Light(true) end)
     b:SetScript("OnLeave", function() Light(false) end)
-    if secure then
-        -- (the modern secure button acts on the key DOWN while the cvar says so, and ignores an
-        -- up-only registration: take both, act on the up like our other buttons)
-        b:RegisterForClicks("AnyUp", "AnyDown")
-        b:SetAttribute("useOnKeyDown", false)
-        b:SetAttribute("type", "click")
-    else
-        b:SetScript("OnClick", function() pcall(run) end)
-    end
+    b:SetScript("OnClick", function() pcall(run) end)
     return b
 end
 local cancelButton = ActionButton("Cancel", function()
@@ -503,7 +522,7 @@ local cancelButton = ActionButton("Cancel", function()
     C.Leave() -- (the scene out at once; the game's event may come late or not at all)
 end)
 cancelButton:SetPoint("RIGHT")
-local exitButton = ActionButton("Exit now", nil, true)
+local exitButton = ActionButton("Exit now", function() ForceQuit() end)
 exitButton:SetPoint("RIGHT", cancelButton, "LEFT", -8, 0)
 
 local title = Text(card, 18, 1, 0.82, 0.45)
@@ -909,33 +928,12 @@ local function StepTexts(dt)
     StepItems(dt)
 end
 
--- (aimed at the game's own quit popup button: its OnAccept does the quitting, untainted;
--- out of combat only, a secure button's attributes are locked in a fight)
-local function AimExit()
-    if InCombatLockdown() then return end
-    local target
-    for i = 1, 4 do
-        local f = rawget(_G, "StaticPopup" .. i)
-        if f and f:IsShown() and f.which == LOGOUT_POPUP[true] then
-            target = f.button1 or rawget(_G, "StaticPopup" .. i .. "Button1")
-        end
-    end
-    exitButton:SetAttribute("clickbutton", target)
-end
-exitButton:HookScript("PreClick", function()
-    AimExit()
-    if not exitButton:GetAttribute("clickbutton") then print("|cffff8800Camp: the game's quit popup button was not found.|r") end
-end)
-
 -- (the card's words: the fire's, or the camp breaking up)
 local function CardWords()
     local pad = IF.Input and IF.Input.Pad and IF.Input.Pad()
     hint:SetShown(logout ~= nil and pad and true or false)
     actions:SetShown(logout ~= nil and not pad)
-    if not InCombatLockdown() then
-        exitButton:SetShown(logout ~= nil and logout.quit and true or false)
-        AimExit()
-    end
+    exitButton:SetShown(logout ~= nil and logout.quit and true or false)
     if logout then
         title:SetText(logout.quit and "Exiting the game" or "Logging out")
         label:SetText("Leaving in")
@@ -989,15 +987,44 @@ end
 
 local function Regions()
     local out = {}
-    for _, name in ipairs(FADED) do
-        local f = rawget(_G, name)
-        if f then out[#out + 1] = f end
+    local seen = {}
+    local function Add(f)
+        if f and not seen[f] then
+            seen[f] = true
+            out[#out + 1] = f
+        end
     end
-    if not rawget(_G, "IFObjectiveTrackerFrame") and _G.ObjectiveTrackerFrame then
-        out[#out + 1] = ObjectiveTrackerFrame
+    for _, name in ipairs(FADED) do
+        local f = _G[name] or rawget(_G, name)
+        Add(f)
+    end
+    local gmb = _G.GamepadMainActionBarFrame or rawget(_G, "GamepadMainActionBarFrame")
+    if gmb then
+        Add(gmb.shortcutsBar)
+        if gmb.PageUnit then
+            Add(gmb.PageUnit)
+            Add(gmb.PageUnit.shortcutsBar)
+            Add(gmb.PageUnit.LeftInputPrompt)
+            Add(gmb.PageUnit.RightInputPrompt)
+            local bars = gmb.PageUnit.actionBars
+            if bars then
+                Add(bars.topBar)
+                Add(bars.leftBar)
+                Add(bars.rightBar)
+                Add(bars.bottomBar)
+            end
+        end
+    end
+    local QFG = _G.QuestieForeverGamepad or rawget(_G, "QuestieForeverGamepad")
+    if QFG and QFG.TrackerView and QFG.TrackerView.frame then
+        Add(QFG.TrackerView.frame)
+    end
+    local QT = _G.QuestieTracker or rawget(_G, "QuestieTracker")
+    if QT and QT.baseFrame then
+        Add(QT.baseFrame)
     end
     local PC = IF.Interface and IF.Interface.PartyCards
-    for _, l in ipairs(PC and PC.labels or {}) do out[#out + 1] = l end
+    for _, l in ipairs(PC and PC.labels or {}) do Add(l) end
     return out
 end
 
@@ -1009,7 +1036,7 @@ local mapHid = {}
 local function MapHidden(hide)
     if hide then
         for _, name in ipairs({ "MinimapCluster", "Minimap" }) do
-            local f = rawget(_G, name)
+            local f = _G[name] or rawget(_G, name)
             if f and f:IsVisible() and not mapHid[f] then
                 if pcall(f.Hide, f) then mapHid[f] = true end
             end
@@ -1025,16 +1052,16 @@ local function HUD(a, force)
     a = math.floor(a * 20 + 0.5) / 20
     if a == hudA and not force then return end
     hudA = a
-    for _, f in ipairs(Regions()) do
+    local regions = Regions()
+    for _, f in ipairs(regions) do
         if a >= 1 then IF.Focus.Fade(f, false) else IF.Focus.Fade(f, true, a) end
     end
     local hide = a < 0.5
     MapHidden(hide)
     if hide ~= modelsHidden or force then
         modelsHidden = hide
-        for _, name in ipairs(FADED) do
-            local f = rawget(_G, name)
-            if f then Model(f, hide) end
+        for _, f in ipairs(regions) do
+            Model(f, hide)
         end
     end
 end
@@ -1285,6 +1312,7 @@ local function Leave(fast)
         cut = nil
         black:SetAlpha(0)
         CameraRestore(true)
+        HUD(1, true)
         Phase("out")
         return
     end

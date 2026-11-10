@@ -41,6 +41,89 @@ function IF.SpellInfo(spell)
     end
 end
 
+local function SafePetActionInfo(slot)
+    if not GetPetActionInfo then return nil end
+    local r1, r2, r3, r4, r5, r6, r7, r8 = GetPetActionInfo(slot)
+    if not r1 then return nil end
+    local name, texture, isToken, spellID
+    if type(r3) == "boolean" then
+        name, texture, isToken, spellID = r1, r2, r3, r7
+    elseif type(r4) == "boolean" then
+        name, texture, isToken, spellID = r1, r3, r4, r8
+    else
+        name, texture, isToken = r1, r2, false
+    end
+    if type(name) == "string" and (name:find("^PET_ACTION_") or name:find("^PET_MODE_")) then
+        isToken = true
+    end
+    return name, texture, isToken, spellID
+end
+IF.SafePetActionInfo = SafePetActionInfo
+
+local function GetPetCommandTexture(cmd)
+    if GetPetActionInfo then
+        local tokenMatch = {
+            attack = "PET_ACTION_ATTACK",
+            follow = "PET_ACTION_FOLLOW",
+            stay = "PET_ACTION_STAY",
+            assist = "PET_MODE_ASSIST",
+            defensive = "PET_MODE_DEFENSIVE",
+            passive = "PET_MODE_PASSIVE",
+            dismiss = "PET_ACTION_DISMISS",
+            moveto = "PET_ACTION_MOVE_TO",
+        }
+        local want = tokenMatch[cmd]
+        for slot = 1, (NUM_PET_ACTION_SLOTS or 10) do
+            local name, texture, isToken = SafePetActionInfo(slot)
+            if (isToken and name == want) or name == want then
+                local btn = _G["PetActionButton" .. slot .. "Icon"]
+                local t = btn and btn:GetTexture()
+                if t and t ~= "" and t ~= want then return t end
+                if type(texture) == "number" or (type(texture) == "string" and texture ~= "" and texture ~= want) then
+                    return texture
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function PetCommandInfo(cmd)
+    local labels = {
+        attack = _G.PET_ACTION_ATTACK or "Pet Attack",
+        follow = _G.PET_ACTION_FOLLOW or "Pet Follow",
+        stay = _G.PET_ACTION_STAY or "Pet Stay",
+        assist = _G.PET_MODE_ASSIST or "Pet Assist",
+        defensive = _G.PET_MODE_DEFENSIVE or "Pet Defensive",
+        passive = _G.PET_MODE_PASSIVE or "Pet Passive",
+        dismiss = _G.PET_ACTION_DISMISS or "Pet Dismiss",
+        moveto = _G.PET_ACTION_MOVE_TO or "Pet Move To",
+    }
+    local icons = {
+        attack = GetPetCommandTexture("attack") or 132158,
+        follow = GetPetCommandTexture("follow") or 132163,
+        stay = GetPetCommandTexture("stay") or 132168,
+        assist = GetPetCommandTexture("assist") or 132157,
+        defensive = GetPetCommandTexture("defensive") or 132110,
+        passive = GetPetCommandTexture("passive") or 132166,
+        dismiss = GetPetCommandTexture("dismiss") or 136095,
+        moveto = GetPetCommandTexture("moveto") or 132164,
+    }
+    local macros = {
+        attack = "/petattack",
+        follow = "/petfollow",
+        stay = "/petstay",
+        assist = "/petassist",
+        defensive = "/petdefensive",
+        passive = "/petpassive",
+        dismiss = "/petdismiss",
+        moveto = "/petmoveto",
+    }
+    if labels[cmd] then
+        return labels[cmd], icons[cmd], macros[cmd]
+    end
+end
+
 function IF.ItemNameByID(id)
     local getName = (C_Item and C_Item.GetItemNameByID) or GetItemInfo
     return getName and getName(id)
@@ -69,6 +152,41 @@ function IF.ActionInfo(action)
         return name, icon
     elseif kind == "emote" then
         return EMOTE_NAME[value] or value, EMOTE_ICONS[value] or IF.EMOTE_ICON
+    elseif kind == "petaction" or kind == "pet" then
+        local name, icon = PetCommandInfo(value)
+        if name then return name, icon end
+        local id = tonumber(value)
+        if id and id <= 10 and GetPetActionInfo then
+            local pName, pTexture, isToken = SafePetActionInfo(id)
+            if isToken then
+                local tokenCmd = {
+                    PET_ACTION_ATTACK = "attack",
+                    PET_ACTION_FOLLOW = "follow",
+                    PET_ACTION_STAY = "stay",
+                    PET_MODE_ASSIST = "assist",
+                    PET_MODE_DEFENSIVE = "defensive",
+                    PET_MODE_PASSIVE = "passive",
+                    PET_ACTION_DISMISS = "dismiss",
+                    PET_ACTION_MOVE_TO = "moveto",
+                }
+                local cmd = tokenCmd[pName]
+                if cmd then
+                    local cName, cIcon = PetCommandInfo(cmd)
+                    return cName, pTexture or cIcon
+                end
+            end
+            if pName then return pName, pTexture end
+        end
+        if id then
+            local sName, sIcon = IF.SpellInfo(id)
+            if sName then return sName, sIcon end
+        end
+        local sName, sIcon = IF.SpellInfo(value)
+        if sName then return sName, sIcon end
+        local tex = (C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(value))
+            or (GetSpellTexture and GetSpellTexture(value))
+        if tex then return value, tex end
+        return value, 132158
     end
 end
 
@@ -273,6 +391,30 @@ function AC.Macro(key)
         elseif kind == "macro" then
             local _, _, body = GetMacroInfo(value)
             return body
+        elseif kind == "petaction" or kind == "pet" then
+            local _, _, macro = PetCommandInfo(value)
+            if macro then return macro end
+            local id = tonumber(value)
+            if id and id <= 10 and GetPetActionInfo then
+                local pName, _, isToken = SafePetActionInfo(id)
+                if isToken then
+                    local tokenCmd = {
+                        PET_ACTION_ATTACK = "/petattack",
+                        PET_ACTION_FOLLOW = "/petfollow",
+                        PET_ACTION_STAY = "/petstay",
+                        PET_MODE_ASSIST = "/petassist",
+                        PET_MODE_DEFENSIVE = "/petdefensive",
+                        PET_MODE_PASSIVE = "/petpassive",
+                        PET_ACTION_DISMISS = "/petdismiss",
+                        PET_ACTION_MOVE_TO = "/petmoveto",
+                    }
+                    if tokenCmd[pName] then return tokenCmd[pName] end
+                elseif pName then
+                    return "/cast " .. pName
+                end
+            end
+            local name = id and (IF.SpellInfo(id)) or value
+            return "/cast " .. name
         end
         return nil
     end
@@ -331,26 +473,27 @@ function IF.GetSpellbookSpells()
             spells[#spells + 1] = { name = name, icon = icon, tab = tab, spellID = spellID }
         end
     end
-    if GetNumSpellTabs and GetSpellBookItemInfo then
+    if C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines then
+        local bank = Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player or 0
+        for line = 1, C_SpellBook.GetNumSpellBookSkillLines() or 0 do
+            local info = C_SpellBook.GetSpellBookSkillLineInfo(line)
+            if info and not info.offSpecID then
+                for index = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
+                    local item = C_SpellBook.GetSpellBookItemInfo(index, bank)
+                    if item and item.itemType == (Enum and Enum.SpellBookItemType and Enum.SpellBookItemType.Spell or 1) and not item.isPassive then
+                        add(item.name, item.iconID, info.name, item.spellID)
+                    end
+                end
+            end
+        end
+    end
+    if #spells == 0 and GetNumSpellTabs and GetSpellBookItemInfo then
         for tab = 1, GetNumSpellTabs() or 0 do
             local tabName, _, offset, numSlots = GetSpellTabInfo(tab)
             for index = (offset or 0) + 1, (offset or 0) + (numSlots or 0) do
                 local itemType, spellID = GetSpellBookItemInfo(index, "spell")
                 if itemType == "SPELL" and not (IsPassiveSpell and IsPassiveSpell(index, "spell")) then
                     add(GetSpellBookItemName(index, "spell"), GetSpellBookItemTexture(index, "spell"), tabName, spellID)
-                end
-            end
-        end
-    elseif C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines then
-        local bank = Enum.SpellBookSpellBank.Player
-        for line = 1, C_SpellBook.GetNumSpellBookSkillLines() or 0 do
-            local info = C_SpellBook.GetSpellBookSkillLineInfo(line)
-            if info and not info.offSpecID then
-                for index = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
-                    local item = C_SpellBook.GetSpellBookItemInfo(index, bank)
-                    if item and item.itemType == Enum.SpellBookItemType.Spell and not item.isPassive then
-                        add(item.name, item.iconID, info.name, item.spellID)
-                    end
                 end
             end
         end
@@ -452,11 +595,81 @@ local function EmoteEntries()
     return entries
 end
 
+local function PetEntries()
+    local entries = {}
+    entries[#entries + 1] = { header = "Pet Commands" }
+    local cmds = { "attack", "follow", "stay", "assist", "defensive", "passive", "dismiss" }
+    for _, cmd in ipairs(cmds) do
+        local name, icon, macro = PetCommandInfo(cmd)
+        entries[#entries + 1] = { action = "petaction:" .. cmd, name = name, icon = icon, sub = macro }
+    end
+
+    local petSpells, seen = {}, {}
+    local function addSpell(name, icon, spellID)
+        if name and not seen[name] then
+            seen[name] = true
+            if not icon or icon == true then
+                icon = (spellID and select(2, IF.SpellInfo(spellID)))
+                    or (C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(name))
+                    or (GetSpellTexture and GetSpellTexture(name))
+            end
+            local actionKey = spellID and ("petaction:" .. spellID) or ("petaction:" .. name)
+            petSpells[#petSpells + 1] = { action = actionKey, name = name, icon = icon }
+        end
+    end
+
+    if C_SpellBook and C_SpellBook.GetSpellBookItemInfo and Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Pet then
+        local bank = Enum.SpellBookSpellBank.Pet
+        for line = 1, (C_SpellBook.GetNumSpellBookSkillLines and C_SpellBook.GetNumSpellBookSkillLines() or 0) do
+            local info = C_SpellBook.GetSpellBookSkillLineInfo(line)
+            if info then
+                for index = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
+                    local item = C_SpellBook.GetSpellBookItemInfo(index, bank)
+                    if item and item.itemType == Enum.SpellBookItemType.Spell and not item.isPassive then
+                        addSpell(item.name, item.iconID, item.spellID)
+                    end
+                end
+            end
+        end
+    end
+
+    if #petSpells == 0 and HasPetSpells and GetSpellBookItemInfo then
+        local numSpells = HasPetSpells()
+        if type(numSpells) == "number" and numSpells > 0 then
+            for index = 1, numSpells do
+                local skillType, spellID = GetSpellBookItemInfo(index, "pet")
+                if skillType == "SPELL" and not (IsPassiveSpell and IsPassiveSpell(index, "pet")) then
+                    addSpell(GetSpellBookItemName(index, "pet"), GetSpellBookItemTexture(index, "pet"), spellID)
+                end
+            end
+        end
+    end
+
+    if GetPetActionInfo then
+        for slot = 1, (NUM_PET_ACTION_SLOTS or 10) do
+            local name, texture, isToken, spellID = SafePetActionInfo(slot)
+            if name and not isToken then
+                addSpell(name, texture, spellID)
+            end
+        end
+    end
+
+    if #petSpells > 0 then
+        entries[#entries + 1] = { header = "Pet Abilities" }
+        for _, sp in ipairs(petSpells) do
+            entries[#entries + 1] = sp
+        end
+    end
+
+    return entries
+end
+
 local SPELLS = { key = "spells", label = "Spells", entries = SpellEntries }
 local ITEMS = { key = "items", label = "Items", entries = ItemEntries }
+local PET = { key = "pet", label = "Pet", entries = PetEntries }
 local MACROS = { key = "macros", label = "Macros", entries = MacroEntries }
 local EMOTES = { key = "emotes", label = "Emotes", entries = EmoteEntries }
-AC.CATALOG = { SPELLS, ITEMS, MACROS, EMOTES }
+AC.CATALOG = { SPELLS, ITEMS, PET, MACROS, EMOTES }
 
 -- /if windows: each window an action can open, the button it would click
 -- and the art it shows (the radial menu's, or not found in this client)

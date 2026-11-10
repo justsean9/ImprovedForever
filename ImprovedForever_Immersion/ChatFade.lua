@@ -96,6 +96,10 @@ local function MouseMoved(now)
     return now - mouseAt <= MOUSE_SECS
 end
 
+local function Secret(v)
+    return type(issecretvalue) == "function" and issecretvalue(v)
+end
+
 local function Use(parts, now)
     if EditModeManagerFrame and EditModeManagerFrame:IsEditModeActive() then return "native", "edit mode" end
     if IF.ChatLines and IF.ChatLines.IsOpen and IF.ChatLines.IsOpen() then return "native", "line picker" end
@@ -105,7 +109,7 @@ local function Use(parts, now)
             local f, role = part[1], part[2]
             if (role == "frame" or role == "tab") and f:IsVisible() then
                 local ok, over = pcall(f.IsMouseOver, f)
-                if ok and over == true then
+                if ok and not Secret(over) and over == true then
                     return "native", "mouse over " .. tostring(f:GetName())
                 end
             end
@@ -143,10 +147,10 @@ local function Lines(hide)
     end
 end
 
--- Each change of state, logged (the last LOG_LINES) in the saved
--- variables: ImprovedForeverDB.chatLog
+-- Each change of state, logged when CF.debug is on
 local LOG_LINES = 40
 local function Log(wanted, why)
+    if not CF.debug then return end
     local log = IF.db.chatLog or {}
     IF.db.chatLog = log
     log[#log + 1] = string.format("%s %.1f -> %s (%s) pad=%s", date("%H:%M:%S"), GetTime() % 1000,

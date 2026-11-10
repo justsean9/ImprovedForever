@@ -581,12 +581,19 @@ local presence = 0
 local function Step(elapsed)
     local want = goal == 1 and not IF.InCombat()
     -- (closed or done: gone at once; a fight only fades it)
+    if goal == 0 and presence <= 0 then
+        if root:IsShown() then root:Hide() end
+        if head:IsShown() then head:Hide() end
+        OB.StopDemos()
+        TakePad(false)
+        return
+    end
     if goal == 0 then presence = 0 end
     presence = want and math.min(1, presence + elapsed / FADE) or math.max(0, presence - elapsed / FADE)
     TakePad(want and presence >= 0.5)
     if presence <= 0 then
-        root:Hide()
-        head:Hide()
+        if root:IsShown() then root:Hide() end
+        if head:IsShown() then head:Hide() end
         OB.StopDemos()
         return
     end

@@ -32,8 +32,6 @@ box:SetToplevel(true)
 box:EnableMouse(true)
 box:SetClampedToScreen(true)
 box:Hide()
--- (its own focus glow, as the game's windows: it has the pad while up)
-IF.Focus.Glow(box, true)
 
 local titleText = box.TitleContainer and box.TitleContainer.TitleText
 if not titleText then
@@ -200,6 +198,7 @@ function C.Show(o)
     end
     -- (the pad's glyphs on them; with the mouse only the words)
     local pad = IF.Input.Pad()
+    IF.Focus.Glow(box, pad)
     acceptButton:SetText((pad and (IF.GlyphText("A", 18) .. " ") or "") .. (o.accept or "OK"))
     cancelButton:SetText((pad and (IF.GlyphText("B", 18) .. " ") or "") .. (o.cancel or "Cancel"))
     acceptButton:SetWidth(math.max(140, acceptButton:GetTextWidth() + 30))

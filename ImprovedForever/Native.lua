@@ -175,6 +175,9 @@ function N.Get(spec)
         if not name then return nil end
         return Macros()[name] or ("macro:" .. name)
     end
+    if kind == "petaction" then
+        return "petaction:" .. id
+    end
     return nil
 end
 
@@ -187,6 +190,8 @@ local function Pickup(kind, value)
         return pickup, tonumber(value)
     elseif kind == "macro" then
         return PickupMacro, value
+    elseif (kind == "petaction" or kind == "pet") and tonumber(value) and PickupPetAction then
+        return PickupPetAction, tonumber(value)
     end
 end
 

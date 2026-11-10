@@ -612,7 +612,7 @@ end
 -- can't be read now
 function N.Start(opts, done)
     opts = opts or {}
-    if not N.Supported() or not Minimap:IsVisible() or not Minimap:GetCenter() then return false end
+    if IF.InCombat() or not N.Supported() or not Minimap:IsVisible() or not Minimap:GetCenter() then return false end
     job = { all = opts.all, debug = opts.debug or N.debug, done = done, me = UnitName("player") }
     Begin(job)
     runner:Show()
@@ -628,7 +628,7 @@ end
 
 runner:SetScript("OnUpdate", function()
     local j = job
-    if not j then return N.Stop() end
+    if not j or IF.InCombat() then return N.Stop() end
     -- The minimap gone: the last scan stands
     local mx, my = Minimap:GetCenter()
     if not Minimap:IsVisible() or not mx then return N.Stop() end

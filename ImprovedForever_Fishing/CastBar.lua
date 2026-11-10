@@ -945,6 +945,7 @@ local function Reel(s, now, t)
 end
 
 local PULL = 0.4                        -- (a catch: the line reeled in to the tip)
+local catchLit = { 1, 1, 1 }
 local function Catch(s, now, t)
     HideLit()
     local c, fx, fy = s.color, s.from[1], s.from[2]
@@ -954,10 +955,12 @@ local function Catch(s, now, t)
     DrawRipples(fx, fy, t, Clamp(1 - t / 1.2), c, Clamp(1 - t / 0.9))
     DrawSchool(s, now, BOB_X, BOB_Y, 99, Clamp(t / 0.7))
     local k = Clamp(t / 0.15)
-    local lit = { Lerp(LINE_COLOR[1], c[1], k), Lerp(LINE_COLOR[2], c[2], k), Lerp(LINE_COLOR[3], c[3], k) }
+    catchLit[1] = Lerp(LINE_COLOR[1], c[1], k)
+    catchLit[2] = Lerp(LINE_COLOR[2], c[2], k)
+    catchLit[3] = Lerp(LINE_COLOR[3], c[3], k)
     local r = Ease((t - 0.1) / PULL)
     local bx, by = Lerp(fx, TIP_X, r), Lerp(fy, TIP_Y, r)
-    DrawLine(TIP_X, TIP_Y, bx, by, SAG * (1 - k), lit, r < 1 and 0.9 or 0)
+    DrawLine(TIP_X, TIP_Y, bx, by, SAG * (1 - k), catchLit, r < 1 and 0.9 or 0)
     DrawBobber(bx, by, Clamp(1 - (t - 0.1 - PULL * 0.7) / (PULL * 0.3)), 1 - 0.3 * r)
     DrawRing(0, 0, 0, 0)
     header:SetAlpha(Clamp(1 - t / 0.4))

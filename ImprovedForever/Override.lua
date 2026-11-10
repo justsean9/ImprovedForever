@@ -308,6 +308,15 @@ twice:HookScript("OnClick", function()
     if armed then armed.fired = true end
 end)
 
+local function HeldDown(held)
+    if not held then return true end
+    if not held:find("+", 1, true) then return IsKeyDown(held) end
+    for _, k in ipairs(IF.Binds.HeldList(held)) do
+        if not IsKeyDown(k) then return false end
+    end
+    return true
+end
+
 watchOwner:SetScript("OnUpdate", function()
     if not IsKeyDown then return end
     if armed then
@@ -316,7 +325,7 @@ watchOwner:SetScript("OnUpdate", function()
         local down = IsKeyDown(w.pressed)
         -- Over: done (once let go), timed out, or the held one let go
         if (armed.fired and not down) or (not armed.fired and GetTime() >= armed.ends)
-            or (w.held and not IsKeyDown(w.held)) then
+            or not HeldDown(w.held) then
             Disarm()
         end
         return
@@ -326,9 +335,10 @@ watchOwner:SetScript("OnUpdate", function()
         return
     end
     for _, w in ipairs(O.watched) do
-        local down = IsKeyDown(w.pressed) and (not w.held or IsKeyDown(w.held))
+        local heldOk = HeldDown(w.held)
+        local down = IsKeyDown(w.pressed) and heldOk
         -- The first press let go: the second one is ours for a moment
-        if w.wasDown and not IsKeyDown(w.pressed) and (not w.held or IsKeyDown(w.held)) then Arm(w) end
+        if w.wasDown and not IsKeyDown(w.pressed) and heldOk then Arm(w) end
         w.wasDown = down
         if armed then break end
     end
